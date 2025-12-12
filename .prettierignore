@@ -1,0 +1,9 @@
+node_modules
+dist
+.playground
+.output
+.nuxt
+.cache
+coverage
+pnpm-lock.yaml
+package-lock.json

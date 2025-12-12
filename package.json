@@ -1,0 +1,50 @@
+{
+  "name": "editable-table",
+  "version": "1.0.0",
+  "description": "Editable Table Module for Nuxt",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "main": "./dist/module.mjs",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/types.d.mts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "nuxt-module-build build",
+    "dev": "npm run dev:prepare && nuxi dev playground",
+    "dev:build": "nuxi build playground",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
+    "release": "npm run prepack && changelogen --release && npm publish && git push --follow-tags",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.2.2"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^3.1.1",
+    "@nuxt/module-builder": "^1.0.2",
+    "@nuxt/schema": "^4.2.2",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "latest",
+    "autoprefixer": "^10.4.22",
+    "changelogen": "^0.6.2",
+    "nuxt": "^4.2.2",
+    "prettier": "3.7.4",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "vue-tsc": "^3.1.7"
+  }
+}

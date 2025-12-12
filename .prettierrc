@@ -1,0 +1,24 @@
+{
+  "semi": true,
+  "singleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "none",
+  "printWidth": 140,
+  "tabWidth": 2,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "bracketSameLine": true,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "vueIndentScriptAndStyle": true,
+  "htmlWhitespaceSensitivity": "css",
+  "experimentalTernaries": true,
+  "overrides": [
+    {
+      "files": "*.md",
+      "options": {
+        "proseWrap": "preserve"
+      }
+    }
+  ]
+}
