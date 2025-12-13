@@ -1,8 +1,18 @@
 {
-  "extends": "./.nuxt/tsconfig.json",
-  "exclude": [
-    "dist",
-    "node_modules",
-    "playground",
-  ]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "strict": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["./src/runtime/components/*"],
+      "@composables/*": ["./src/runtime/composables/*"],
+      "@models/*": ["./src/runtime/types/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"]
 }
