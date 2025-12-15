@@ -9,7 +9,7 @@
     joinedAt: string;
   };
 
-  const rowCount = 10;
+  const rowCount = 100;
 
   function generateRows() {
     const mockNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"];
