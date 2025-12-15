@@ -9,64 +9,23 @@
     joinedAt: string;
   };
 
-  const rows = ref<UserRow[]>([
-    {
-      id: 1,
-      name: "Alice",
-      age: 24,
-      active: true,
-      joinedAt: "2024-01-12"
-    },
-    {
-      id: 2,
-      name: "Bob",
-      age: 31,
-      active: false,
-      joinedAt: "2023-06-03"
-    },
-    {
-      id: 3,
-      name: "Charlie",
-      age: 28,
-      active: true,
-      joinedAt: "2022-11-21"
-    },
-    {
-      id: 4,
-      name: "Diana",
-      age: 35,
-      active: false,
-      joinedAt: "2021-09-15"
-    },
-    {
-      id: 5,
-      name: "Ethan",
-      age: 22,
-      active: true,
-      joinedAt: "2024-03-30"
-    },
-    {
-      id: 6,
-      name: "Fiona",
-      age: 29,
-      active: true,
-      joinedAt: "2023-12-05"
-    },
-    {
-      id: 7,
-      name: "George",
-      age: 33,
-      active: false,
-      joinedAt: "2022-07-19"
-    },
-    {
-      id: 8,
-      name: "Hannah",
-      age: 27,
-      active: true,
-      joinedAt: "2021-04-22"
+  const rowCount = 50;
+
+  const rows = computed<UserRow[]>(() => {
+    const mockNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"];
+    const result: UserRow[] = [];
+    for (let i = 1; i <= rowCount; i++) {
+      const name = mockNames[(i - 1) % mockNames.length];
+      result.push({
+        id: i,
+        name: `${name} ${i}`,
+        age: 20 + ((i * 7) % 20),
+        active: i % 2 === 0,
+        joinedAt: new Date(2020 + (i % 5), (i * 3) % 12, ((i * 5) % 28) + 1).toISOString().slice(0, 10)
+      });
     }
-  ]);
+    return result;
+  });
 
   const columns: EditableTableColumn<UserRow>[] = [
     {

@@ -15,6 +15,10 @@ export function useEditableTableNavigation() {
     activePosition.value = position;
   }
 
+  function clearActive() {
+    activePosition.value = null;
+  }
+
   function move(direction: "left" | "right" | "up" | "down", rowCount: number, columnCount: number) {
     if (!activePosition.value) return;
 
@@ -69,6 +73,7 @@ export function useEditableTableNavigation() {
   return {
     activePosition,
     setActive,
+    clearActive,
     move,
     shouldHandleNavigationKey
   };

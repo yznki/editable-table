@@ -1,7 +1,9 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { computed } from "vue";
+  import { computed, ref } from "vue";
+  import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
   import { EditableTableProps } from "@models/table";
+  import { useEditableTableNavigation } from "@composables/useEditableTableNavigation";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
 
   const tableRoot = cva("w-full overflow-x-auto text-sm");
@@ -15,6 +17,13 @@
 
   const rows = defineModel<TRow[]>({ default: () => [] });
 
+  const { clearActive } = useEditableTableNavigation();
+  const tableElement = ref<HTMLElement | null>(null);
+
+  onClickOutside(tableElement, () => {
+    clearActive();
+  });
+
   const getRowId = (row: TRow, rowIndex: number) => {
     const rowId = row[props.idPropertyName as keyof TRow];
     return rowId ?? rowIndex;
@@ -26,7 +35,7 @@
 </script>
 
 <template>
-  <div :class="tableRoot()">
+  <div ref="tableElement" :class="tableRoot()">
     <!-- Header -->
     <div :class="headerRow()" :style="gridStyle">
       <div v-for="column in columns" :key="String(column.rowKey)" :class="headerCell()">

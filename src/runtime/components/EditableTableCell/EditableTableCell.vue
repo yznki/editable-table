@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, any>, TKey extends keyof TRow">
-  import { computed, ref, watch } from "vue";
+  import { computed, onBeforeUnmount, ref, watch } from "vue";
   import { useMagicKeys } from "@vueuse/core";
   import { cva } from "class-variance-authority";
 
@@ -67,6 +67,58 @@
   );
 
   /* --------------------------------------------------
+   * repeating navigation (hold to accelerate)
+   * -------------------------------------------------- */
+
+  type ArrowNavigationKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+  const repeatHandles = new Map<ArrowNavigationKey, number>();
+
+  function stopRepeat(key: ArrowNavigationKey) {
+    const handle = repeatHandles.get(key);
+    if (handle !== undefined) {
+      window.clearTimeout(handle);
+      repeatHandles.delete(key);
+    }
+  }
+
+  function stopAllRepeats() {
+    repeatHandles.forEach((handle) => window.clearTimeout(handle));
+    repeatHandles.clear();
+  }
+
+  function startRepeat(key: ArrowNavigationKey, direction: "left" | "right" | "up" | "down") {
+    stopRepeat(key);
+    move(direction, props.rowCount, props.columnCount);
+
+    const initialDelay = 300;
+    const minDelay = 60;
+    const accelerationFactor = 0.85;
+
+    const schedule = (delay: number) => {
+      const handle = window.setTimeout(() => {
+        move(direction, props.rowCount, props.columnCount);
+        const nextDelay = Math.max(minDelay, delay * accelerationFactor);
+        schedule(nextDelay);
+      }, delay);
+
+      repeatHandles.set(key, handle);
+    };
+
+    schedule(initialDelay);
+  }
+
+  /* --------------------------------------------------
+   * keep focused cell visible
+   * -------------------------------------------------- */
+
+  const cellElement = ref<HTMLElement | null>(null);
+
+  watch(isFocused, (focused) => {
+    if (!focused) return;
+    cellElement.value?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+
+  /* --------------------------------------------------
    * value snapshot (Escape)
    * -------------------------------------------------- */
 
@@ -82,7 +134,19 @@
    * keyboard intent (VueUse)
    * -------------------------------------------------- */
 
-  const keys = useMagicKeys({ passive: false });
+  const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
+  const keys = useMagicKeys({
+    passive: false,
+    onEventFired(event) {
+      if (event.type !== "keydown") return;
+      if (!navigationKeys.has(event.key)) return;
+
+      if (isFocused.value && !isActive.value) {
+        event.preventDefault();
+      }
+    }
+  });
 
   watch(keys.enter, (pressed) => {
     if (!pressed || !isFocused.value) return;
@@ -115,23 +179,47 @@
   });
 
   watch(keys.arrowLeft, (pressed) => {
+    if (!pressed) {
+      shouldHandleNavigationKey("ArrowLeft", pressed, isFocused.value, isActive.value);
+      stopRepeat("ArrowLeft");
+      return;
+    }
+
     if (!shouldHandleNavigationKey("ArrowLeft", pressed, isFocused.value, isActive.value)) return;
-    move("left", props.rowCount, props.columnCount);
+    startRepeat("ArrowLeft", "left");
   });
 
   watch(keys.arrowRight, (pressed) => {
+    if (!pressed) {
+      shouldHandleNavigationKey("ArrowRight", pressed, isFocused.value, isActive.value);
+      stopRepeat("ArrowRight");
+      return;
+    }
+
     if (!shouldHandleNavigationKey("ArrowRight", pressed, isFocused.value, isActive.value)) return;
-    move("right", props.rowCount, props.columnCount);
+    startRepeat("ArrowRight", "right");
   });
 
   watch(keys.arrowUp, (pressed) => {
+    if (!pressed) {
+      shouldHandleNavigationKey("ArrowUp", pressed, isFocused.value, isActive.value);
+      stopRepeat("ArrowUp");
+      return;
+    }
+
     if (!shouldHandleNavigationKey("ArrowUp", pressed, isFocused.value, isActive.value)) return;
-    move("up", props.rowCount, props.columnCount);
+    startRepeat("ArrowUp", "up");
   });
 
   watch(keys.arrowDown, (pressed) => {
+    if (!pressed) {
+      shouldHandleNavigationKey("ArrowDown", pressed, isFocused.value, isActive.value);
+      stopRepeat("ArrowDown");
+      return;
+    }
+
     if (!shouldHandleNavigationKey("ArrowDown", pressed, isFocused.value, isActive.value)) return;
-    move("down", props.rowCount, props.columnCount);
+    startRepeat("ArrowDown", "down");
   });
 
   /* --------------------------------------------------
@@ -151,11 +239,16 @@
       columnKey: String(props.columnKey)
     });
   }
+
+  onBeforeUnmount(() => {
+    stopAllRepeats();
+  });
 </script>
 
 <template>
   <div
     tabindex="0"
+    ref="cellElement"
     :class="
       cellClass({
         active: isActive,
