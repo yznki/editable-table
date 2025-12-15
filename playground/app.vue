@@ -9,9 +9,9 @@
     joinedAt: string;
   };
 
-  const rowCount = 50;
+  const rowCount = 10;
 
-  const rows = computed<UserRow[]>(() => {
+  function generateRows() {
     const mockNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"];
     const result: UserRow[] = [];
     for (let i = 1; i <= rowCount; i++) {
@@ -25,7 +25,9 @@
       });
     }
     return result;
-  });
+  }
+
+  const rows = ref<UserRow[]>(generateRows());
 
   const columns: EditableTableColumn<UserRow>[] = [
     {

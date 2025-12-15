@@ -12,15 +12,15 @@
    * styles
    * -------------------------------------------------- */
 
-  const cellClass = cva("px-3 py-2 cursor-text outline-none transition-colors", {
+  const cellClass = cva("relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent", {
     variants: {
       active: {
-        true: "bg-blue-50",
-        false: "hover:bg-gray-50"
+        true: "bg-blue-50/70",
+        false: ""
       },
       focused: {
-        true: "ring-2 ring-blue-400",
-        false: ""
+        true: "border-blue-500 shadow-[inset_0_0_0_2px_rgba(37,99,235,0.45)]",
+        false: "hover:bg-gray-50"
       }
     }
   });
@@ -164,7 +164,9 @@
   });
 
   watch(keys.escape, (pressed) => {
-    if (!pressed || !isActive.value) return;
+    if (!pressed || !isActive.value) {
+      return;
+    }
 
     if (originalValue.value !== null) {
       value.value = originalValue.value;
@@ -246,21 +248,7 @@
 </script>
 
 <template>
-  <div
-    tabindex="0"
-    ref="cellElement"
-    :class="
-      cellClass({
-        active: isActive,
-        focused: isFocused
-      })
-    "
-    @click="onClick"
-    @dblclick="onDblClick">
-    <EditableTableCellEditor v-if="isActive" v-model="value" :type="columnType" @blur="stopEditing" class="w-full" />
-
-    <template v-else>
-      {{ value }}
-    </template>
+  <div tabindex="0" ref="cellElement" :class="cellClass({ active: isActive, focused: isFocused })" @click="onClick" @dblclick="onDblClick">
+    <EditableTableCellEditor v-model="value" :type="columnType" @blur="stopEditing" class="w-full" :is-editable="isActive" />
   </div>
 </template>

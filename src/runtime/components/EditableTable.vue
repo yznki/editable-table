@@ -8,10 +8,10 @@
 
   const tableRoot = cva("w-full overflow-x-auto text-sm");
 
-  const headerRow = cva("grid border-b bg-gray-50 font-medium");
+  const headerRow = cva("grid border-b border-gray-300 bg-gray-50 font-medium");
   const headerCell = cva("px-3 py-2 truncate");
 
-  const bodyRow = cva("grid border-b");
+  const bodyRow = cva("grid border-b border-gray-200");
 
   const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id" });
 
@@ -36,20 +36,18 @@
 
 <template>
   <div ref="tableElement" :class="tableRoot()">
-    <!-- Header -->
     <div :class="headerRow()" :style="gridStyle">
       <div v-for="column in columns" :key="String(column.rowKey)" :class="headerCell()">
         {{ column.title }}
       </div>
     </div>
 
-    <!-- Rows -->
     <div>
       <div v-for="(row, rowIndex) in rows" :key="String(getRowId(row, rowIndex))" :class="bodyRow()" :style="gridStyle">
         <EditableTableCell
           v-for="(column, columnIndex) in columns"
           :key="String(column.rowKey)"
-          v-model="row[column.rowKey]"
+          v-model="rows[rowIndex][column.rowKey as keyof TRow]"
           :row-id="getRowId(row, rowIndex)"
           :column-key="column.rowKey"
           :column-type="column.type"
