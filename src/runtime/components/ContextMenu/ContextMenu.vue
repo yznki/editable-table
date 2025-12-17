@@ -12,9 +12,14 @@
     position: ContextMenuPosition;
     alignment?: "center" | "start" | "end";
     verticalAlignment?: "none" | "center";
+    transition?: "default" | "fade";
   }
 
-  const props = withDefaults(defineProps<ContextMenuProps>(), { alignment: "center", verticalAlignment: "none" });
+  const props = withDefaults(defineProps<ContextMenuProps>(), {
+    alignment: "center",
+    verticalAlignment: "none",
+    transition: "default"
+  });
 
   const isVisible = defineModel<boolean>({ default: false });
 
@@ -45,12 +50,12 @@
 
 <template>
   <Transition
-    enter-active-class="transition duration-150 ease-out"
-    enter-from-class="opacity-0 -translate-y-1"
-    enter-to-class="opacity-100 translate-y-0"
-    leave-active-class="transition duration-100 ease-in"
-    leave-from-class="opacity-100 translate-y-0"
-    leave-to-class="opacity-0 -translate-y-1">
+    :enter-active-class="props.transition === 'fade' ? 'transition duration-120 ease-out' : 'transition duration-150 ease-out'"
+    :enter-from-class="props.transition === 'fade' ? 'opacity-0' : 'opacity-0 -translate-y-1'"
+    :enter-to-class="props.transition === 'fade' ? 'opacity-100' : 'opacity-100 translate-y-0'"
+    :leave-active-class="props.transition === 'fade' ? 'transition duration-100 ease-in' : 'transition duration-100 ease-in'"
+    :leave-from-class="props.transition === 'fade' ? 'opacity-100' : 'opacity-100 translate-y-0'"
+    :leave-to-class="props.transition === 'fade' ? 'opacity-0' : 'opacity-0 -translate-y-1'">
     <div v-if="isVisible" ref="menuElement" :class="[menuClass(), alignmentClass, verticalAlignmentClass]" :style="menuStyle">
       <slot />
     </div>

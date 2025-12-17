@@ -73,7 +73,7 @@
   const typeOptionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left", {
     variants: {
       active: {
-        true: "bg-blue-50 text-blue-700",
+        true: "bg-gray-100 text-gray-900",
         false: "hover:bg-gray-50 text-gray-800"
       }
     },
@@ -107,11 +107,12 @@
 
   function updateTypeSubmenuPosition() {
     const typeRect = typeButtonElement.value?.getBoundingClientRect();
-    if (!typeRect) return;
+    const tableRootRect = typeButtonElement.value?.closest("[data-editable-table-root]")?.getBoundingClientRect();
+    if (!typeRect || !tableRootRect) return;
 
     typeSubmenuPosition.value = {
-      left: typeRect.right + 8,
-      top: typeRect.top + typeRect.height / 2
+      left: typeRect.right - tableRootRect.left + 4,
+      top: typeRect.top - tableRootRect.top + typeRect.height / 2
     };
   }
 
@@ -192,9 +193,10 @@
         :position="typeSubmenuPosition"
         alignment="start"
         vertical-alignment="center"
+        transition="fade"
         @mouseenter="clearTypeSubmenuCloseTimeout"
         @mouseleave="scheduleCloseTypeSubmenu">
-        <div class="min-w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-black/5">
+        <div class="space-y-1">
           <button
             v-for="option in typeOptions"
             :key="option.value"
@@ -205,7 +207,7 @@
               <FontAwesomeIcon v-if="option.icon" :icon="option.icon" class="h-4 w-4" />
               <span>{{ option.label }}</span>
             </div>
-            <span v-if="option.value === currentTypeOption.value" class="text-xs text-blue-600">Selected</span>
+            <span v-if="option.value === currentTypeOption.value" class="text-xs text-gray-500">Current</span>
           </button>
         </div>
       </ContextMenu>

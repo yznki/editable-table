@@ -369,7 +369,13 @@
 </script>
 
 <template>
-  <div ref="tableElement" :class="tableRoot()" @paste="handlePasteEvent" @keydown.capture="onKeyDown" @copy.capture="handleCopyEvent">
+  <div
+    ref="tableElement"
+    data-editable-table-root
+    :class="tableRoot()"
+    @paste="handlePasteEvent"
+    @keydown.capture="onKeyDown"
+    @copy.capture="handleCopyEvent">
     <div ref="headerRowElement" :class="headerRow()" :style="gridStyle">
       <div :class="indexCell()">#</div>
       <div
