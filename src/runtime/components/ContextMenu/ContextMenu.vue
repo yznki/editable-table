@@ -11,9 +11,10 @@
   export interface ContextMenuProps {
     position: ContextMenuPosition;
     alignment?: "center" | "start" | "end";
+    verticalAlignment?: "none" | "center";
   }
 
-  const props = withDefaults(defineProps<ContextMenuProps>(), { alignment: "center" });
+  const props = withDefaults(defineProps<ContextMenuProps>(), { alignment: "center", verticalAlignment: "none" });
 
   const isVisible = defineModel<boolean>({ default: false });
 
@@ -28,6 +29,8 @@
     : props.alignment === "end" ? "-translate-x-full"
     : "-translate-x-1/2"
   );
+
+  const verticalAlignmentClass = computed(() => (props.verticalAlignment === "center" ? "-translate-y-1/2" : ""));
 
   const menuStyle = computed(() => ({
     left: `${props.position.left}px`,
@@ -48,7 +51,7 @@
     leave-active-class="transition duration-100 ease-in"
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 -translate-y-1">
-    <div v-if="isVisible" ref="menuElement" :class="[menuClass(), alignmentClass]" :style="menuStyle">
+    <div v-if="isVisible" ref="menuElement" :class="[menuClass(), alignmentClass, verticalAlignmentClass]" :style="menuStyle">
       <slot />
     </div>
   </Transition>

@@ -10,6 +10,7 @@
     resolveColumnTypeOption
   } from "@models/column";
   import ContextMenu from "../ContextMenu/ContextMenu.vue";
+  import type { ContextMenuPosition } from "../ContextMenu/ContextMenu.vue";
   import { useMagicKeys } from "@vueuse/core";
 
   interface EditableTableColumnMenuProps {
@@ -39,9 +40,8 @@
   const isVisible = defineModel<boolean>({ default: false });
 
   const isTypeSubmenuOpen = ref(false);
-  const typeSubmenuPosition = ref({ top: 0 });
+  const typeSubmenuPosition = ref<ContextMenuPosition>({ top: 0, left: 0 });
   const typeButtonElement = ref<HTMLElement | null>(null);
-  const menuContentElement = ref<HTMLElement | null>(null);
   const typeSubmenuCloseTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
   const optionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 transition-colors text-left", {
@@ -106,12 +106,12 @@
   }
 
   function updateTypeSubmenuPosition() {
-    const menuRect = menuContentElement.value?.getBoundingClientRect();
     const typeRect = typeButtonElement.value?.getBoundingClientRect();
-    if (!menuRect || !typeRect) return;
+    if (!typeRect) return;
 
     typeSubmenuPosition.value = {
-      top: typeRect.top - menuRect.top + typeRect.height / 2
+      left: typeRect.right + 8,
+      top: typeRect.top + typeRect.height / 2
     };
   }
 
@@ -166,7 +166,7 @@
 
 <template>
   <ContextMenu v-model="isVisible" :position="menuPosition" alignment="center">
-    <div ref="menuContentElement" class="relative">
+    <div class="relative">
       <div :class="titleClass()">
         {{ column.title }}
       </div>
@@ -187,19 +187,14 @@
         </div>
       </button>
 
-      <Transition
-        enter-active-class="transition duration-100 ease-out"
-        enter-from-class="opacity-0 -translate-y-1"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition duration-75 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-1">
-        <div
-          v-if="isTypeSubmenuOpen"
-          class="absolute left-full z-10 ml-2 min-w-48 -translate-y-1/2 rounded-lg border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
-          :style="{ top: `${typeSubmenuPosition.top}px` }"
-          @mouseenter="clearTypeSubmenuCloseTimeout"
-          @mouseleave="scheduleCloseTypeSubmenu">
+      <ContextMenu
+        v-model="isTypeSubmenuOpen"
+        :position="typeSubmenuPosition"
+        alignment="start"
+        vertical-alignment="center"
+        @mouseenter="clearTypeSubmenuCloseTimeout"
+        @mouseleave="scheduleCloseTypeSubmenu">
+        <div class="min-w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-black/5">
           <button
             v-for="option in typeOptions"
             :key="option.value"
@@ -213,7 +208,7 @@
             <span v-if="option.value === currentTypeOption.value" class="text-xs text-blue-600">Selected</span>
           </button>
         </div>
-      </Transition>
+      </ContextMenu>
 
       <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
         <button type="button" :class="actionClass()" @click="sort('asc')">Sort ascending</button>
