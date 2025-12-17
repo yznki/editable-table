@@ -16,7 +16,7 @@
 
   const value = defineModel<TValue>();
 
-  const contentClass = cva("block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0", {
+  const contentClass = cva("block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0 select-text", {
     variants: {
       editable: {
         true: "",

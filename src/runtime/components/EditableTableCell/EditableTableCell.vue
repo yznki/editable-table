@@ -8,6 +8,18 @@
   import { useEditableTableNavigation } from "@composables/useEditableTableNavigation";
   import { ColumnType } from "@models/column";
 
+  interface SelectionRange {
+    startRow: number;
+    endRow: number;
+    startCol: number;
+    endCol: number;
+  }
+
+  const emit = defineEmits<{
+    (event: "cell-select", payload: { rowIndex: number; columnIndex: number; shift: boolean }): void;
+    (event: "cell-focus", payload: { rowIndex: number; columnIndex: number }): void;
+  }>();
+
   /* --------------------------------------------------
    * styles
    * -------------------------------------------------- */
@@ -20,6 +32,10 @@
       },
       focused: {
         true: "border-blue-500 shadow-[inset_0_0_0_2px_rgba(37,99,235,0.45)]",
+        false: "hover:bg-gray-50"
+      },
+      selected: {
+        true: "bg-blue-50/40 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.25)]",
         false: "hover:bg-gray-50"
       }
     }
@@ -39,6 +55,8 @@
 
     rowCount: number;
     columnCount: number;
+
+    selectionRange?: SelectionRange | null;
   }>();
 
   const value = defineModel<TRow[TKey]>();
@@ -65,6 +83,12 @@
   const isFocused = computed(
     () => activePosition.value?.rowIndex === props.rowIndex && activePosition.value?.columnIndex === props.columnIndex
   );
+
+  const isSelected = computed(() => {
+    if (!props.selectionRange) return false;
+    const { startRow, endRow, startCol, endCol } = props.selectionRange;
+    return props.rowIndex >= startRow && props.rowIndex <= endRow && props.columnIndex >= startCol && props.columnIndex <= endCol;
+  });
 
   /* --------------------------------------------------
    * repeating navigation (hold to accelerate)
@@ -163,6 +187,12 @@
     move("down", props.rowCount, props.columnCount);
   });
 
+  watch(isFocused, (focused) => {
+    if (focused) {
+      emit("cell-focus", { rowIndex: props.rowIndex, columnIndex: props.columnIndex });
+    }
+  });
+
   watch(keys.escape, (pressed) => {
     if (!pressed || !isActive.value) {
       return;
@@ -181,6 +211,7 @@
   });
 
   watch(keys.arrowLeft, (pressed) => {
+    if (keys.meta.value || keys.ctrl.value) return;
     if (!pressed) {
       shouldHandleNavigationKey("ArrowLeft", pressed, isFocused.value, isActive.value);
       stopRepeat("ArrowLeft");
@@ -192,6 +223,7 @@
   });
 
   watch(keys.arrowRight, (pressed) => {
+    if (keys.meta.value || keys.ctrl.value) return;
     if (!pressed) {
       shouldHandleNavigationKey("ArrowRight", pressed, isFocused.value, isActive.value);
       stopRepeat("ArrowRight");
@@ -203,6 +235,7 @@
   });
 
   watch(keys.arrowUp, (pressed) => {
+    if (keys.meta.value || keys.ctrl.value) return;
     if (!pressed) {
       shouldHandleNavigationKey("ArrowUp", pressed, isFocused.value, isActive.value);
       stopRepeat("ArrowUp");
@@ -214,6 +247,7 @@
   });
 
   watch(keys.arrowDown, (pressed) => {
+    if (keys.meta.value || keys.ctrl.value) return;
     if (!pressed) {
       shouldHandleNavigationKey("ArrowDown", pressed, isFocused.value, isActive.value);
       stopRepeat("ArrowDown");
@@ -228,11 +262,12 @@
    * mouse interaction
    * -------------------------------------------------- */
 
-  function onClick() {
+  function onClick(event: MouseEvent) {
     setActive({
       rowIndex: props.rowIndex,
       columnIndex: props.columnIndex
     });
+    emit("cell-select", { rowIndex: props.rowIndex, columnIndex: props.columnIndex, shift: event.shiftKey });
   }
 
   function onDblClick() {
@@ -248,7 +283,15 @@
 </script>
 
 <template>
-  <div tabindex="0" ref="cellElement" :class="cellClass({ active: isActive, focused: isFocused })" @click="onClick" @dblclick="onDblClick">
+  <div
+    tabindex="0"
+    ref="cellElement"
+    :class="[
+      cellClass({ active: isActive, focused: isFocused, selected: isSelected }),
+      !isActive ? 'select-none' : ''
+    ]"
+    @click="onClick"
+    @dblclick="onDblClick">
     <EditableTableCellEditor v-model="value" :type="columnType" @blur="stopEditing" class="w-full" :is-editable="isActive" />
   </div>
 </template>
