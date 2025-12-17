@@ -1,10 +1,17 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
+  import { EditableTableColumn } from "@models/column";
   import { cva } from "class-variance-authority";
-
   import { computed, ref } from "vue";
-  import type { PropType } from "vue";
 
   type StatType = "sum" | "average" | "minimum" | "maximum" | "count";
+
+  interface EditableTableFooterProps {
+    rows: TRow[];
+    columns: EditableTableColumn<TRow>[];
+    selectionRange: { startRowIndex: number; endRowIndex: number; startColumnIndex: number; endColumnIndex: number } | null;
+    selectedRowIndexes: number[];
+    selectedColumnIndexes: number[];
+  }
 
   const statOptions: { value: StatType; label: string }[] = [
     { value: "sum", label: "Sum" },
@@ -15,13 +22,7 @@
   ];
   const selectedStat = ref<StatType>("sum");
 
-  const props = defineProps({
-    rows: { type: Array as PropType<any[]>, required: true },
-    columns: { type: Array as PropType<any[]>, required: true },
-    selectionRange: { type: Object as PropType<any>, required: true },
-    selectedRowIndexes: { type: Array as PropType<number[]>, required: true },
-    selectedColumnIndexes: { type: Array as PropType<number[]>, required: true }
-  });
+  const props = defineProps<EditableTableFooterProps>();
 
   const footerRow = cva("sticky bottom-0 z-10 border-t border-gray-200 bg-white/95 backdrop-blur flex justify-end");
   const footerContent = cva("flex items-center justify-end gap-3 px-3 py-2 text-xs text-gray-600");
