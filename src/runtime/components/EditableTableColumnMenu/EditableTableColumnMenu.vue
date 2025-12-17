@@ -1,8 +1,8 @@
 <script setup lang="ts">
   import { computed, ref, watch } from "vue";
-  import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
   import { ColumnType } from "@models/column";
+  import ContextMenu from "../ContextMenu/ContextMenu.vue";
 
   interface ColumnTypeOption {
     value: ColumnType;
@@ -27,12 +27,8 @@
     (event: "move-right"): void;
   }>();
 
-  const menuElement = ref<HTMLElement | null>(null);
   const isTypeSelectorOpen = ref(false);
 
-  const menuClass = cva(
-    "absolute z-20 min-w-[12rem] rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-lg ring-1 ring-black/5 transition"
-  );
   const optionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 transition-colors", {
     variants: {
       active: {
@@ -60,10 +56,7 @@
     }
   });
 
-  const menuStyle = computed(() => ({
-    left: `${props.position.left}px`,
-    top: `${props.position.top}px`
-  }));
+  const menuPosition = computed(() => props.position);
 
   watch(
     () => props.isOpen,
@@ -73,12 +66,6 @@
       }
     }
   );
-
-  onClickOutside(menuElement, () => {
-    if (!props.isOpen) return;
-    emit("close");
-    isTypeSelectorOpen.value = false;
-  });
 
   function toggleTypeSelector() {
     isTypeSelectorOpen.value = !isTypeSelectorOpen.value;
@@ -94,46 +81,50 @@
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition duration-150 ease-out"
-    enter-from-class="opacity-0 -translate-y-1"
-    enter-to-class="opacity-100 translate-y-0"
-    leave-active-class="transition duration-100 ease-in"
-    leave-from-class="opacity-100 translate-y-0"
-    leave-to-class="opacity-0 -translate-y-1">
-    <div v-if="isOpen" ref="menuElement" :class="[menuClass(), '-translate-x-1/2']" :style="menuStyle">
-      <div :class="titleClass()">
-        {{ columnTitle }}
-      </div>
-      <button type="button" :class="optionClass({ active: isTypeSelectorOpen })" @click="toggleTypeSelector">
-        <span class="font-medium">Type</span>
-        <span class="text-xs text-gray-500">{{ columnType }}</span>
-      </button>
-
-      <div v-if="isTypeSelectorOpen" class="px-1">
-        <select :value="columnType" :class="selectClass()" @change="onTypeChange">
-          <option v-for="option in availableTypes" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </div>
-
-      <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
-        <button
-          type="button"
-          :class="actionClass({ disabled: !canMoveLeft })"
-          :disabled="!canMoveLeft"
-          @click="canMoveLeft && emit('move-left')">
-          Move left
-        </button>
-        <button
-          type="button"
-          :class="actionClass({ disabled: !canMoveRight })"
-          :disabled="!canMoveRight"
-          @click="canMoveRight && emit('move-right')">
-          Move right
-        </button>
-      </div>
+  <ContextMenu :is-open="isOpen" :position="menuPosition" align="center" @close="emit('close')">
+    <div :class="titleClass()">
+      {{ columnTitle }}
     </div>
-  </Transition>
+    <button type="button" :class="optionClass({ active: isTypeSelectorOpen })" @click="toggleTypeSelector">
+      <span class="font-medium">Type</span>
+      <span class="text-xs text-gray-500">{{ columnType }}</span>
+    </button>
+
+    <div v-if="isTypeSelectorOpen" class="px-1">
+      <select :value="columnType" :class="selectClass()" @change="onTypeChange">
+        <option v-for="option in availableTypes" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </div>
+
+    <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
+      <button
+        type="button"
+        :class="actionClass({ disabled: !canMoveLeft })"
+        :disabled="!canMoveLeft"
+        @click="
+          () => {
+            if (!canMoveLeft) return;
+            emit('move-left');
+            emit('close');
+          }
+        ">
+        Move left
+      </button>
+      <button
+        type="button"
+        :class="actionClass({ disabled: !canMoveRight })"
+        :disabled="!canMoveRight"
+        @click="
+          () => {
+            if (!canMoveRight) return;
+            emit('move-right');
+            emit('close');
+          }
+        ">
+        Move right
+      </button>
+    </div>
+  </ContextMenu>
 </template>
