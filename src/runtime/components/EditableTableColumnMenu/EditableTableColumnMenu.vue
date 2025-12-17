@@ -15,12 +15,16 @@
     position: { left: number; top: number };
     isOpen: boolean;
     availableTypes: ColumnTypeOption[];
+    canMoveLeft: boolean;
+    canMoveRight: boolean;
   }
 
   const props = defineProps<EditableTableColumnMenuProps>();
   const emit = defineEmits<{
     (event: "close"): void;
     (event: "select-type", type: ColumnType): void;
+    (event: "move-left"): void;
+    (event: "move-right"): void;
   }>();
 
   const menuElement = ref<HTMLElement | null>(null);
@@ -44,6 +48,17 @@
     "mt-2 w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-sm text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
   );
   const titleClass = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500");
+  const actionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors", {
+    variants: {
+      disabled: {
+        true: "text-gray-400 cursor-not-allowed",
+        false: "hover:bg-gray-50 text-gray-800"
+      }
+    },
+    defaultVariants: {
+      disabled: false
+    }
+  });
 
   const menuStyle = computed(() => ({
     left: `${props.position.left}px`,
@@ -101,6 +116,23 @@
             {{ option.label }}
           </option>
         </select>
+      </div>
+
+      <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
+        <button
+          type="button"
+          :class="actionClass({ disabled: !canMoveLeft })"
+          :disabled="!canMoveLeft"
+          @click="canMoveLeft && emit('move-left')">
+          Move left
+        </button>
+        <button
+          type="button"
+          :class="actionClass({ disabled: !canMoveRight })"
+          :disabled="!canMoveRight"
+          @click="canMoveRight && emit('move-right')">
+          Move right
+        </button>
       </div>
     </div>
   </Transition>

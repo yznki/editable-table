@@ -13,12 +13,9 @@
   type CellPosition = { rowIndex: number; columnIndex: number };
 
   const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id" });
-  const emit = defineEmits<{
-    (event: "update:columns", columns: EditableTableColumn<TRow>[]): void;
-  }>();
 
   const rows = defineModel<TRow[]>({ default: () => [] });
-  const columns = ref<EditableTableColumn<TRow>[]>([...props.columns]);
+  const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [...props.columns] });
 
   const selectionAnchor = ref<CellPosition | null>(null);
   const selectionEnd = ref<CellPosition | null>(null);
@@ -37,13 +34,6 @@
     selectionAnchor.value = null;
     selectionEnd.value = null;
   });
-
-  watch(
-    () => props.columns,
-    (incomingColumns) => {
-      columns.value = [...incomingColumns];
-    }
-  );
 
   const gridStyle = computed(() => ({
     gridTemplateColumns: `${indexColumnWidth} repeat(${columns.value.length}, minmax(0, 1fr))`
@@ -194,13 +184,24 @@
   function updateColumnType(type: ColumnType) {
     if (columnMenuIndex.value === null) return;
 
-    const updatedColumns = columns.value.map((column, index) => {
+    columns.value = columns.value.map((column, index) => {
       if (index !== columnMenuIndex.value) return column;
       return { ...column, type };
     });
+  }
+
+  function moveColumn(direction: "left" | "right") {
+    if (columnMenuIndex.value === null) return;
+
+    const targetIndex = columnMenuIndex.value + (direction === "left" ? -1 : 1);
+    if (targetIndex < 0 || targetIndex >= columns.value.length) return;
+
+    const updatedColumns = [...columns.value];
+    const [movedColumn] = updatedColumns.splice(columnMenuIndex.value, 1);
+    updatedColumns.splice(targetIndex, 0, movedColumn);
 
     columns.value = updatedColumns;
-    emit("update:columns", updatedColumns);
+    columnMenuIndex.value = targetIndex;
   }
 
   const activeColumnMenu = computed(() => {
@@ -287,7 +288,11 @@
       :column-title="activeColumnMenu?.title ?? ''"
       :column-type="activeColumnMenu?.type ?? 'text'"
       :available-types="columnTypeOptions"
+      :can-move-left="(columnMenuIndex ?? 0) > 0"
+      :can-move-right="(columnMenuIndex ?? 0) < columns.length - 1"
       @close="closeColumnMenu"
-      @select-type="updateColumnType" />
+      @select-type="updateColumnType"
+      @move-left="moveColumn('left')"
+      @move-right="moveColumn('right')" />
   </div>
 </template>
