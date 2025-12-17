@@ -73,6 +73,21 @@
     return Array.from({ length: safeEndColumnIndex - safeStartColumnIndex + 1 }, (_, columnOffset) => safeStartColumnIndex + columnOffset);
   });
 
+  const activeColumnMenu = computed(() => {
+    if (columnMenuIndex.value === null) return null;
+    return columns.value[columnMenuIndex.value] ?? null;
+  });
+
+  const draggingColumnClass = computed(() =>
+    isDragging.value ? "opacity-30 transition-opacity duration-150 ease-out" : "transition-opacity duration-150 ease-out"
+  );
+
+  const draggingColumnBodyClass = computed(() =>
+    isDragging.value ?
+      "opacity-30 pointer-events-none transition-opacity duration-150 ease-out"
+    : "transition-opacity duration-150 ease-out"
+  );
+
   const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
     rows,
     columns,
@@ -179,6 +194,11 @@
     });
   }
 
+  /**
+   * Opens the column menu for the specified column index.
+   * @param columnIndex - The index of the column to open the menu for.
+   * @param event - The mouse or keyboard event that triggered the menu opening.
+   */
   function openColumnMenu(columnIndex: number, event: MouseEvent | KeyboardEvent) {
     const headerCellElement = event.currentTarget as HTMLElement | null;
     const tableRect = tableElement.value?.getBoundingClientRect();
@@ -193,11 +213,19 @@
     isColumnMenuVisible.value = true;
   }
 
+  /**
+   * Closes the column menu.
+   */
   function closeColumnMenu() {
     columnMenuIndex.value = null;
     columnMenuPosition.value = null;
+    isColumnMenuVisible.value = false;
   }
 
+  /**
+   * Updates the type of the currently selected column in the column menu.
+   * @param type - The new column type to set.
+   */
   function updateColumnType(type: ColumnType) {
     if (columnMenuIndex.value === null) return;
 
@@ -207,11 +235,20 @@
     });
   }
 
+  /**
+   * Handles header click events to open the column menu.
+   * @param columnIndex - The index of the clicked column.
+   * @param event - The mouse or keyboard event.
+   */
   function onHeaderClick(columnIndex: number, event: MouseEvent | KeyboardEvent) {
     if (shouldBlockHeaderClick.value) return;
     openColumnMenu(columnIndex, event);
   }
 
+  /**
+   * Moves the column at the current columnMenuIndex in the specified direction.
+   * @param direction - The direction to move the column ("left", "right", "first", "last").
+   */
   function moveColumn(direction: "left" | "right" | "first" | "last") {
     if (columnMenuIndex.value === null) return;
 
@@ -243,21 +280,6 @@
     columns.value = updatedColumns;
     columnMenuIndex.value = targetIndex;
   }
-
-  const activeColumnMenu = computed(() => {
-    if (columnMenuIndex.value === null) return null;
-    return columns.value[columnMenuIndex.value] ?? null;
-  });
-
-  const draggingColumnClass = computed(() =>
-    isDragging.value ? "opacity-30 transition-opacity duration-150 ease-out" : "transition-opacity duration-150 ease-out"
-  );
-
-  const draggingColumnBodyClass = computed(() =>
-    isDragging.value ?
-      "opacity-30 pointer-events-none transition-opacity duration-150 ease-out"
-    : "transition-opacity duration-150 ease-out"
-  );
 
   watch(
     columns,

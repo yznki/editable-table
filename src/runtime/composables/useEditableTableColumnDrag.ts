@@ -93,14 +93,16 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
       .sort((metricA, metricB) => metricA.left - metricB.left);
   }
 
-  function findInsertionIndex(relativeX: number, activeKey: string | null) {
+  function findInsertionIndex(relativeX: number, activeKey: string | null, isDraggingRight: boolean) {
     if (!activeKey) return null;
     const metrics = collectColumnMetrics(activeKey);
     if (!metrics.length) return 0;
 
+    const insertionThreshold = isDraggingRight ? 0.1 : 0.9;
+
     for (let index = 0; index < metrics.length; index++) {
       const { left, width } = metrics[index];
-      if (relativeX < left + width) return index;
+      if (relativeX < left + width * insertionThreshold) return index;
     }
 
     return metrics.length;
@@ -154,7 +156,9 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
   function updateDragPosition(event: PointerEvent) {
     if (!isPointerDown.value) return;
 
+    const previousX = currentX.value;
     currentX.value = event.clientX;
+    const isDraggingRight = currentX.value >= previousX;
     const hasMovedEnough = Math.abs(currentX.value - dragStartX.value) > 4;
     if (!isDragging.value && hasMovedEnough) {
       beginDragging(draggingColumnIndex.value ?? 0);
@@ -165,7 +169,7 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
 
     const headerRect = headerRowElement.value.getBoundingClientRect();
     const relativeX = currentX.value - headerRect.left;
-    const insertionIndex = findInsertionIndex(relativeX, draggingColumnKey.value);
+    const insertionIndex = findInsertionIndex(relativeX, draggingColumnKey.value, isDraggingRight);
     reorderColumns(insertionIndex);
   }
 
@@ -175,7 +179,10 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
 
   function cancelDrag() {
     if (isDragging.value && initialColumnOrder.value.length) {
-      columns.value = initialColumnOrder.value;
+      columns.value = initialColumnOrder.value.map((col) => ({
+        ...col,
+        rowKey: typeof col.rowKey === "string" ? col.rowKey : (String(col.rowKey) as keyof TRow)
+      }));
     }
     resetDragState();
   }
