@@ -2,7 +2,8 @@
   import { computed, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
-  import { ColumnType, EditableTableColumn } from "@models/column";
+  import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+  import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
   import { EditableTableProps } from "@models/table";
   import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
@@ -31,6 +32,7 @@
   const indexColumnWidth = "3rem";
 
   const isColumnMenuVisible = ref(false);
+  const getColumnTypeOption = (type?: ColumnType) => resolveColumnTypeOption(type, defaultColumnTypeOptions);
 
   const { clearActive, activePosition, setActive, handleTableKeyDown } = useEditableTableNavigation();
 
@@ -281,6 +283,55 @@
     columnMenuIndex.value = targetIndex;
   }
 
+  function normalizeForSort(value: unknown, type: ColumnType) {
+    if (value === null || value === undefined) {
+      return { comparable: null, isNullish: true };
+    }
+
+    switch (type) {
+      case "number": {
+        const numericValue = typeof value === "number" ? value : Number(value);
+        return { comparable: numericValue, isNullish: Number.isNaN(numericValue) };
+      }
+      case "boolean":
+        return { comparable: value === true || value === "true" || value === 1 ? 1 : 0, isNullish: false };
+      case "date": {
+        const timestamp = value instanceof Date ? value.getTime() : new Date(value as any).getTime();
+        return { comparable: timestamp, isNullish: Number.isNaN(timestamp) };
+      }
+      case "select":
+      case "custom":
+      case "text":
+      default:
+        return { comparable: String(value).toLowerCase(), isNullish: false };
+    }
+  }
+
+  function compareValuesForSort(a: unknown, b: unknown, type: ColumnType, direction: "asc" | "desc") {
+    const normalizedA = normalizeForSort(a, type);
+    const normalizedB = normalizeForSort(b, type);
+
+    if (normalizedA.isNullish && normalizedB.isNullish) return 0;
+    if (normalizedA.isNullish) return 1;
+    if (normalizedB.isNullish) return -1;
+
+    if (normalizedA.comparable === normalizedB.comparable) return 0;
+
+    const result = normalizedA.comparable > normalizedB.comparable ? 1 : -1;
+    return direction === "asc" ? result : -result;
+  }
+
+  function sortRows(direction: "asc" | "desc") {
+    if (columnMenuIndex.value === null) return;
+    const column = columns.value[columnMenuIndex.value];
+    if (!column) return;
+
+    const columnKey = column.rowKey as keyof TRow;
+    const columnType = column.type ?? "text";
+
+    rows.value = [...rows.value].sort((rowA, rowB) => compareValuesForSort(rowA?.[columnKey], rowB?.[columnKey], columnType, direction));
+  }
+
   watch(
     columns,
     () => {
@@ -324,7 +375,7 @@
       <div
         v-for="(column, columnIndex) in columns"
         :key="String(column.rowKey)"
-        :class="[headerCell(), draggingColumnIndex === columnIndex ? draggingColumnClass : '']"
+        :class="[headerCell(), draggingColumnIndex === columnIndex ? draggingColumnClass : '', 'flex items-center gap-2 truncate']"
         role="button"
         tabindex="0"
         :data-column-index="columnIndex"
@@ -333,7 +384,17 @@
         @click="onHeaderClick(columnIndex, $event)"
         @keydown.enter.prevent="onHeaderClick(columnIndex, $event)"
         @keydown.space.prevent="onHeaderClick(columnIndex, $event)">
-        {{ column.title }}
+        <div class="flex min-w-0 items-center gap-2">
+          <FontAwesomeIcon
+            v-if="getColumnTypeOption(column.type).icon"
+            :icon="getColumnTypeOption(column.type).icon"
+            class="h-3.5 w-3.5 text-gray-600" />
+          <span class="truncate">{{ column.title }}</span>
+          <span class="flex items-center gap-1 text-xs text-gray-500">
+            <FontAwesomeIcon v-if="getColumnTypeOption(column.type).icon" :icon="getColumnTypeOption(column.type).icon" class="h-3 w-3" />
+            <span class="truncate">{{ getColumnTypeOption(column.type).label }}</span>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -382,6 +443,8 @@
       @move-left="moveColumn('left')"
       @move-right="moveColumn('right')"
       @move-first="moveColumn('first')"
-      @move-last="moveColumn('last')" />
+      @move-last="moveColumn('last')"
+      @sort-ascending="sortRows('asc')"
+      @sort-descending="sortRows('desc')" />
   </div>
 </template>
