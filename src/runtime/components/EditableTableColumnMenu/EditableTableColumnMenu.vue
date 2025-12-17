@@ -41,6 +41,7 @@
 
   const isTypeSubmenuOpen = ref(false);
   const typeSubmenuPosition = ref<ContextMenuPosition>({ top: 0, left: 0 });
+  const typeSubmenuAlignment = ref<"start" | "end">("start");
   const typeButtonElement = ref<HTMLElement | null>(null);
   const typeSubmenuCloseTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
@@ -107,12 +108,20 @@
 
   function updateTypeSubmenuPosition() {
     const typeRect = typeButtonElement.value?.getBoundingClientRect();
-    const tableRootRect = typeButtonElement.value?.closest("[data-editable-table-root]")?.getBoundingClientRect();
-    if (!typeRect || !tableRootRect) return;
+    const parentMenuRect = typeButtonElement.value?.closest("[data-context-menu]")?.getBoundingClientRect();
+    if (!typeRect || !parentMenuRect) return;
 
+    const gap = 4;
+    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 0;
+    const spaceOnRight = viewportWidth ? viewportWidth - typeRect.right : parentMenuRect.right - typeRect.right;
+    const spaceOnLeft = viewportWidth ? typeRect.left : typeRect.left - parentMenuRect.left;
+    const estimatedMenuWidth = Math.max(parentMenuRect.width, 240);
+    const shouldOpenLeft = spaceOnRight < estimatedMenuWidth + gap && spaceOnLeft > spaceOnRight;
+
+    typeSubmenuAlignment.value = shouldOpenLeft ? "end" : "start";
     typeSubmenuPosition.value = {
-      left: typeRect.right - tableRootRect.left + 4,
-      top: typeRect.top - tableRootRect.top + typeRect.height / 2
+      left: shouldOpenLeft ? -gap * 4 : typeRect.right - parentMenuRect.left + gap,
+      top: typeRect.top - parentMenuRect.top
     };
   }
 
@@ -136,7 +145,7 @@
   }
 
   function sort(direction: "asc" | "desc") {
-    emit(direction === "asc" ? "sort-ascending" : "sort-descending");
+    direction === "asc" ? emit("sort-ascending") : emit("sort-descending");
     isVisible.value = false;
   }
 
@@ -182,17 +191,13 @@
           <FontAwesomeIcon v-if="currentTypeOption.icon" :icon="currentTypeOption.icon" class="h-4 w-4 text-gray-600" />
           <span class="font-medium">Type</span>
         </div>
-        <div class="flex items-center gap-2 text-xs text-gray-500">
-          <FontAwesomeIcon v-if="currentTypeOption.icon" :icon="currentTypeOption.icon" class="h-3 w-3" />
-          <span>{{ currentTypeOption.label }}</span>
-        </div>
       </button>
 
       <ContextMenu
         v-model="isTypeSubmenuOpen"
         :position="typeSubmenuPosition"
-        alignment="start"
-        vertical-alignment="center"
+        :alignment="typeSubmenuAlignment"
+        vertical-alignment="none"
         transition="fade"
         @mouseenter="clearTypeSubmenuCloseTimeout"
         @mouseleave="scheduleCloseTypeSubmenu">

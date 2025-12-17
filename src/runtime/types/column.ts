@@ -40,8 +40,8 @@ export const defaultColumnTypeOptions: ColumnTypeOption[] = [
   { value: "number", label: "Number", icon: faHashtag },
   { value: "boolean", label: "Boolean", icon: faToggleOn },
   { value: "select", label: "Select", icon: faListUl },
-  { value: "date", label: "Date", icon: faCalendarDays },
-  { value: "custom", label: "Custom", icon: faPuzzlePiece }
+  { value: "date", label: "Date", icon: faCalendarDays }
+  // { value: "custom", label: "Custom", icon: faPuzzlePiece }
 ];
 
 export function resolveColumnTypeOption(type: ColumnType | undefined, availableTypes?: ColumnTypeOption[]): ColumnTypeOption {

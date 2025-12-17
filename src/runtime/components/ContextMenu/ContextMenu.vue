@@ -56,7 +56,12 @@
     :leave-active-class="props.transition === 'fade' ? 'transition duration-100 ease-in' : 'transition duration-100 ease-in'"
     :leave-from-class="props.transition === 'fade' ? 'opacity-100' : 'opacity-100 translate-y-0'"
     :leave-to-class="props.transition === 'fade' ? 'opacity-0' : 'opacity-0 -translate-y-1'">
-    <div v-if="isVisible" ref="menuElement" :class="[menuClass(), alignmentClass, verticalAlignmentClass]" :style="menuStyle">
+    <div
+      v-if="isVisible"
+      ref="menuElement"
+      data-context-menu
+      :class="[menuClass(), alignmentClass, verticalAlignmentClass]"
+      :style="menuStyle">
       <slot />
     </div>
   </Transition>

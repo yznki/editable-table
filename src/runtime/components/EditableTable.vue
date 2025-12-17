@@ -2,7 +2,6 @@
   import { computed, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
-  import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
   import { EditableTableProps } from "@models/table";
   import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
@@ -11,6 +10,7 @@
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
+  import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
 
@@ -317,7 +317,11 @@
 
     if (normalizedA.comparable === normalizedB.comparable) return 0;
 
-    const result = normalizedA.comparable > normalizedB.comparable ? 1 : -1;
+    if (normalizedA.comparable === null && normalizedB.comparable !== null) return 1;
+    if (normalizedA.comparable !== null && normalizedB.comparable === null) return -1;
+    if (normalizedA.comparable === null && normalizedB.comparable === null) return 0;
+
+    const result = (normalizedA.comparable as any) > (normalizedB.comparable as any) ? 1 : -1;
     return direction === "asc" ? result : -result;
   }
 
@@ -387,19 +391,14 @@
         :data-column-index="columnIndex"
         :data-column-key="String(column.rowKey)"
         @pointerdown="onColumnPointerDown(columnIndex, $event)"
-        @click="onHeaderClick(columnIndex, $event)"
-        @keydown.enter.prevent="onHeaderClick(columnIndex, $event)"
-        @keydown.space.prevent="onHeaderClick(columnIndex, $event)">
+        @click="onHeaderClick(columnIndex, $event)">
         <div class="flex min-w-0 items-center gap-2">
           <FontAwesomeIcon
             v-if="getColumnTypeOption(column.type).icon"
             :icon="getColumnTypeOption(column.type).icon"
-            class="h-3.5 w-3.5 text-gray-600" />
+            class="text-gray-400"
+            size="xs" />
           <span class="truncate">{{ column.title }}</span>
-          <span class="flex items-center gap-1 text-xs text-gray-500">
-            <FontAwesomeIcon v-if="getColumnTypeOption(column.type).icon" :icon="getColumnTypeOption(column.type).icon" class="h-3 w-3" />
-            <span class="truncate">{{ getColumnTypeOption(column.type).label }}</span>
-          </span>
         </div>
       </div>
     </div>
