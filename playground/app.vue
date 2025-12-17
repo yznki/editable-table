@@ -5,11 +5,12 @@
     id: number;
     name: string;
     age: number;
+    age2: number;
     active: boolean;
     joinedAt: string;
   };
 
-  const rowCount = 200;
+  const rowCount = 50;
 
   function generateRows() {
     const mockNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"];
@@ -20,6 +21,7 @@
         id: i,
         name: `${name} ${i}`,
         age: 20 + ((i * 7) % 20),
+        age2: 30 + ((i * 5) % 25),
         active: i % 2 === 0,
         joinedAt: new Date(2020 + (i % 5), (i * 3) % 12, ((i * 5) % 28) + 1).toISOString().slice(0, 10)
       });
@@ -41,6 +43,11 @@
       type: "number"
     },
     {
+      rowKey: "age2",
+      title: "Age 2",
+      type: "number"
+    },
+    {
       rowKey: "active",
       title: "Active",
       type: "boolean"
@@ -59,12 +66,12 @@
 
     <EditableTable v-model="rows" :columns="columns" id-property-name="id" />
 
-    <pre>
+    <!-- <pre>
       {{ rows.length }}
     </pre>
 
     <pre style="margin-top: 24px"
       >{{ rows }}
-    </pre>
+    </pre> -->
   </div>
 </template>

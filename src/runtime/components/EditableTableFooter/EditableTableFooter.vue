@@ -77,21 +77,19 @@
 </script>
 
 <template>
-  <div :class="footerRow()">
+  <div v-if="numericStats.length" :class="footerRow()">
     <div :class="footerContent()">
-      <template v-if="numericStats.length">
-        <label class="flex items-center gap-1 text-gray-500">
-          <select v-model="selectedStat" :class="footerSelect()">
-            <option v-for="option in statOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
-        <span v-for="statistic in numericStats" :key="statistic.key" :class="footerStat()">
-          {{ statistic.title }}:
-          <strong class="font-semibold text-gray-900">{{ statistic.value }}</strong>
-        </span>
-      </template>
+      <label class="flex items-center gap-1 text-gray-500">
+        <select v-model="selectedStat" :class="footerSelect()">
+          <option v-for="option in statOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <span v-for="statistic in numericStats" :key="statistic.key" :class="footerStat()">
+        {{ statistic.title }}:
+        <strong class="font-semibold text-gray-900">{{ statistic.value }}</strong>
+      </span>
     </div>
   </div>
 </template>
