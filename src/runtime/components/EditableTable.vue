@@ -3,28 +3,26 @@
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
   import { EditableTableProps } from "@models/table";
-  import { useEditableTableNavigation } from "@composables/useEditableTableNavigation";
+  import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
+  import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
+  import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
 
-  const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
-
-  const headerRow = cva("grid border-b border-gray-300 bg-gray-50 font-medium");
-  const headerCell = cva("px-3 py-2 truncate");
-  const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
-
-  const bodyRow = cva("grid border-b border-gray-200");
-  const bodyWrapper = cva("relative flex-1 overflow-auto");
-  const footerRow = cva("sticky bottom-0 z-10 border-t border-gray-200 bg-white/95 backdrop-blur flex justify-end");
-  const footerContent = cva("flex items-center justify-end gap-3 px-3 py-2 text-xs text-gray-600");
-  const footerStat = cva("flex items-center gap-1 text-gray-700");
-  const footerSelect = cva("border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400");
+  type CellPosition = { rowIndex: number; columnIndex: number };
 
   const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id" });
 
   const rows = defineModel<TRow[]>({ default: () => [] });
 
-  const { clearActive, activePosition, setActive } = useEditableTableNavigation();
+  const selectionAnchor = ref<CellPosition | null>(null);
+  const selectionEnd = ref<CellPosition | null>(null);
+  const preserveSelectionOnNextFocus = ref(false);
+
   const tableElement = ref<HTMLElement | null>(null);
+  const bodyWrapperElement = ref<HTMLElement | null>(null);
+  const indexColumnWidth = "3rem";
+
+  const { clearActive, activePosition, setActive, handleTableKeyDown } = useEditableTableNavigation();
 
   onClickOutside(tableElement, () => {
     clearActive();
@@ -32,90 +30,69 @@
     selectionEnd.value = null;
   });
 
-  const indexColumnWidth = "3rem";
+  const gridStyle = computed(() => ({
+    gridTemplateColumns: `${indexColumnWidth} repeat(${props.columns.length}, minmax(0, 1fr))`
+  }));
 
-  type CellPosition = { rowIndex: number; columnIndex: number };
-  interface SelectionRange {
-    startRow: number;
-    endRow: number;
-    startCol: number;
-    endCol: number;
-  }
+  const selectionRange = computed<TableSelectionRange | null>(() => {
+    if (!selectionAnchor.value || !selectionEnd.value) return null;
+    const startRowIndex = Math.min(selectionAnchor.value.rowIndex, selectionEnd.value.rowIndex);
+    const endRowIndex = Math.max(selectionAnchor.value.rowIndex, selectionEnd.value.rowIndex);
+    const startColumnIndex = Math.min(selectionAnchor.value.columnIndex, selectionEnd.value.columnIndex);
+    const endColumnIndex = Math.max(selectionAnchor.value.columnIndex, selectionEnd.value.columnIndex);
+    return { startRowIndex, endRowIndex, startColumnIndex, endColumnIndex };
+  });
 
-  const selectionAnchor = ref<CellPosition | null>(null);
-  const selectionEnd = ref<CellPosition | null>(null);
-  const preserveSelectionOnNextFocus = ref(false);
+  const selectedRowIndexes = computed(() => {
+    if (!selectionRange.value) return [];
+    if (!rows.value.length) return [];
+    const { startRowIndex, endRowIndex } = selectionRange.value;
+    const maximumRowIndex = Math.max(0, rows.value.length - 1);
+    const safeStartRowIndex = Math.min(Math.max(startRowIndex, 0), maximumRowIndex);
+    const safeEndRowIndex = Math.min(Math.max(endRowIndex, 0), maximumRowIndex);
+    return Array.from({ length: safeEndRowIndex - safeStartRowIndex + 1 }, (_, rowOffset) => safeStartRowIndex + rowOffset);
+  });
 
-  type StatType = "sum" | "avg" | "min" | "max" | "count";
-  const statOptions: { value: StatType; label: string }[] = [
-    { value: "sum", label: "Sum" },
-    { value: "avg", label: "Average" },
-    { value: "min", label: "Min" },
-    { value: "max", label: "Max" },
-    { value: "count", label: "Count" }
-  ];
-  const selectedStat = ref<StatType>("sum");
+  const selectedColumnIndexes = computed(() => {
+    if (!selectionRange.value) return [];
+    if (!props.columns.length) return [];
+    const { startColumnIndex, endColumnIndex } = selectionRange.value;
+    const maximumColumnIndex = Math.max(0, props.columns.length - 1);
+    const safeStartColumnIndex = Math.min(Math.max(startColumnIndex, 0), maximumColumnIndex);
+    const safeEndColumnIndex = Math.min(Math.max(endColumnIndex, 0), maximumColumnIndex);
+    return Array.from({ length: safeEndColumnIndex - safeStartColumnIndex + 1 }, (_, columnOffset) => safeStartColumnIndex + columnOffset);
+  });
+
+  const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
+    rows,
+    columns: props.columns,
+    selectionRange,
+    selectedRowIndexes,
+    selectedColumnIndexes
+  });
 
   const getRowId = (row: TRow, rowIndex: number) => {
     const rowId = row[props.idPropertyName as keyof TRow];
     return rowId ?? rowIndex;
   };
 
-  const gridStyle = computed(() => ({
-    gridTemplateColumns: `${indexColumnWidth} repeat(${props.columns.length}, minmax(0, 1fr))`
-  }));
-
-  function setSelection(position: CellPosition, extend: boolean) {
-    if (extend && selectionAnchor.value) {
+  function setSelection(position: CellPosition, shouldExtendSelection: boolean) {
+    if (shouldExtendSelection && selectionAnchor.value) {
       selectionEnd.value = position;
-    } else {
-      selectionAnchor.value = position;
-      selectionEnd.value = position;
+      return;
     }
+
+    selectionAnchor.value = position;
+    selectionEnd.value = position;
   }
-
-  const selectionRange = computed<SelectionRange | null>(() => {
-    if (!selectionAnchor.value || !selectionEnd.value) return null;
-    const startRow = Math.min(selectionAnchor.value.rowIndex, selectionEnd.value.rowIndex);
-    const endRow = Math.max(selectionAnchor.value.rowIndex, selectionEnd.value.rowIndex);
-    const startCol = Math.min(selectionAnchor.value.columnIndex, selectionEnd.value.columnIndex);
-    const endCol = Math.max(selectionAnchor.value.columnIndex, selectionEnd.value.columnIndex);
-    return { startRow, endRow, startCol, endCol };
-  });
-
-  const selectedRowIndexes = computed(() => {
-    if (!selectionRange.value) return [];
-    if (!rows.value.length) return [];
-    const { startRow, endRow } = selectionRange.value;
-    const maxRow = Math.max(0, rows.value.length - 1);
-    const safeStart = Math.min(Math.max(startRow, 0), maxRow);
-    const safeEnd = Math.min(Math.max(endRow, 0), maxRow);
-    return Array.from({ length: safeEnd - safeStart + 1 }, (_, i) => safeStart + i);
-  });
-
-  const selectedColumnIndexes = computed(() => {
-    if (!selectionRange.value) return [];
-    if (!props.columns.length) return [];
-    const { startCol, endCol } = selectionRange.value;
-    const maxCol = Math.max(0, props.columns.length - 1);
-    const safeStart = Math.min(Math.max(startCol, 0), maxCol);
-    const safeEnd = Math.min(Math.max(endCol, 0), maxCol);
-    return Array.from({ length: safeEnd - safeStart + 1 }, (_, i) => safeStart + i);
-  });
-
-  const selectionLabel = computed(() => {
-    if (!selectionRange.value) return "";
-    const { startRow, endRow } = selectionRange.value;
-    return startRow === endRow ? `Row ${startRow + 1}` : `Rows ${startRow + 1}-${endRow + 1}`;
-  });
 
   function onIndexClick(rowIndex: number, event: MouseEvent) {
     const position: CellPosition = { rowIndex, columnIndex: 0 };
-    const extend = event.shiftKey && selectionAnchor.value !== null;
-    setSelection({ ...position, columnIndex: 0 }, extend);
+    const shouldExtendSelection = event.shiftKey && selectionAnchor.value !== null;
+    setSelection({ ...position, columnIndex: 0 }, shouldExtendSelection);
     selectionAnchor.value = selectionAnchor.value ? { ...selectionAnchor.value, columnIndex: 0 } : position;
     selectionEnd.value = { rowIndex, columnIndex: Math.max(0, props.columns.length - 1) };
-    preserveSelectionOnNextFocus.value = extend;
+    preserveSelectionOnNextFocus.value = shouldExtendSelection;
   }
 
   function onCellSelect(payload: { rowIndex: number; columnIndex: number; shift: boolean }) {
@@ -130,190 +107,40 @@
       preserveSelectionOnNextFocus.value = false;
       return;
     }
+
     preserveSelectionOnNextFocus.value = false;
     setSelection({ rowIndex: payload.rowIndex, columnIndex: payload.columnIndex }, false);
   }
 
   function onKeyDown(event: KeyboardEvent) {
-    const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-    const isArrow = arrowKeys.includes(event.key);
+    const selectionState: NavigationSelectionState = {
+      selectionAnchor,
+      selectionEnd,
+      preserveSelectionOnNextFocus
+    };
 
-    // Jump to edges with Ctrl/Cmd + arrows
-    if (isArrow && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-
-      const current = activePosition.value ?? { rowIndex: 0, columnIndex: 0 };
-      const rowMax = Math.max(0, rows.value.length - 1);
-      const colMax = Math.max(0, props.columns.length - 1);
-
-      const target =
-        event.key === "ArrowUp"
-          ? { rowIndex: 0, columnIndex: current.columnIndex }
-          : event.key === "ArrowDown"
-            ? { rowIndex: rowMax, columnIndex: current.columnIndex }
-            : event.key === "ArrowLeft"
-              ? { rowIndex: current.rowIndex, columnIndex: 0 }
-              : { rowIndex: current.rowIndex, columnIndex: colMax };
-
-      if (event.shiftKey) {
-        if (!selectionAnchor.value) selectionAnchor.value = current;
-        selectionEnd.value = target;
-        preserveSelectionOnNextFocus.value = true;
-      } else {
-        selectionAnchor.value = target;
-        selectionEnd.value = target;
-      }
-
-      setActive(target);
-      return;
-    }
-
-    // Extend selection with shift + arrows
-    if (isArrow && event.shiftKey) {
-      event.preventDefault();
-      if (!selectionAnchor.value) {
-        const current = activePosition.value ?? { rowIndex: 0, columnIndex: 0 };
-        selectionAnchor.value = current;
-        selectionEnd.value = current;
-      }
-      preserveSelectionOnNextFocus.value = true;
-    }
-
-    // Copy handled in onCopy; allow default for inputs
+    handleTableKeyDown({
+      event,
+      rowsLength: rows.value.length,
+      columnsLength: props.columns.length,
+      selectionState,
+      activePosition,
+      setActive,
+      setSelection,
+      scrollContainer: bodyWrapperElement
+    });
   }
 
-  const numericStats = computed(() => {
-    if (!selectionRange.value) return [];
-
-    const columnsInSelection = selectedColumnIndexes.value
-      .map((colIndex) => ({ index: colIndex, column: props.columns[colIndex] }))
-      .filter(({ column }) => column && column.type === "number");
-
-    if (!columnsInSelection.length) return [];
-
-    let rowsInSelection = selectedRowIndexes.value;
-
-    if (selectionRange.value.startRow === selectionRange.value.endRow) {
-      rowsInSelection = rows.value.map((_, index) => index);
-    }
-
-    return columnsInSelection
-      .map(({ column }) => {
-        const values = rowsInSelection
-          .map((rowIndex) => Number(rows.value[rowIndex]?.[column.rowKey]))
-          .filter((value) => Number.isFinite(value));
-
-        if (!values.length) return null;
-
-        const sum = values.reduce((acc, value) => acc + value, 0);
-        const avg = sum / values.length;
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        const count = values.length;
-
-        const valueByStat: Record<StatType, number> = { sum, avg, min, max, count };
-        const displayValue = valueByStat[selectedStat.value];
-
-        return {
-          key: String(column.rowKey),
-          title: column.title,
-          value: Number.isFinite(displayValue) ? displayValue : ""
-        };
-      })
-      .filter((stat): stat is { key: string; title: string; value: number | string } => Boolean(stat));
-  });
-
-  function onCopy(event: ClipboardEvent) {
-    const target = event.target as HTMLElement | null;
-    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
-      return;
-    }
-
-    if (!selectionRange.value) return;
-
-    const rowIndices = selectedRowIndexes.value;
-    const columnIndices = selectedColumnIndexes.value;
-
-    if (!rowIndices.length || !columnIndices.length) return;
-
-    const matrix = rowIndices.map((rowIndex) =>
-      columnIndices.map((colIndex) => {
-        const column = props.columns[colIndex];
-        if (!column) return "";
-        const value = rows.value[rowIndex]?.[column.rowKey];
-        return value ?? "";
-      })
-    );
-
-    const text = matrix.map((row) => row.join("\t")).join("\n");
-    event.preventDefault();
-    event.clipboardData?.setData("text/plain", text);
-  }
-
-  function applyValueToCell(rowIndex: number, columnIndex: number, rawValue: string) {
-    const column = props.columns[columnIndex];
-    if (!column) return;
-    const key = column.rowKey as keyof TRow;
-
-    let parsed: any = rawValue;
-    if (column.type === "number") {
-      const num = Number(rawValue);
-      if (!Number.isFinite(num)) return;
-      parsed = num;
-    } else if (column.type === "boolean") {
-      const normalized = rawValue.trim().toLowerCase();
-      parsed = ["true", "1", "yes", "y", "on", "✓", "✔"].includes(normalized);
-    }
-
-    rows.value[rowIndex][key] = parsed as TRow[keyof TRow];
-  }
-
-  function onPaste(event: ClipboardEvent) {
-    const target = event.target as HTMLElement | null;
-    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
-      return;
-    }
-
-    if (!selectionRange.value) return;
-
-    const text = event.clipboardData?.getData("text") ?? "";
-    if (!text) return;
-
-    event.preventDefault();
-
-    const normalized = text.replace(/\r/g, "");
-    const lines = normalized.split("\n").filter((line, idx, arr) => !(line === "" && idx === arr.length - 1));
-    const matrix = lines.map((line) => line.split("\t"));
-    if (!matrix.length) return;
-    const width = Math.max(...matrix.map((row) => row.length));
-    const height = matrix.length;
-
-    const rowIndices = selectedRowIndexes.value;
-    const columnIndices = selectedColumnIndexes.value;
-
-    if (!rowIndices.length || !columnIndices.length) return;
-
-    if (height === 1 && width === 1) {
-      const value = matrix[0][0] ?? "";
-      rowIndices.forEach((rowIndex) => {
-        columnIndices.forEach((columnIndex) => applyValueToCell(rowIndex, columnIndex, value));
-      });
-      return;
-    }
-
-    const rowsToFill = Math.min(rowIndices.length, height);
-    const colsToFill = Math.min(columnIndices.length, width);
-
-    for (let r = 0; r < rowsToFill; r++) {
-      for (let c = 0; c < colsToFill; c++) {
-        applyValueToCell(rowIndices[r], columnIndices[c], matrix[r]?.[c] ?? "");
-      }
-    }
-  }
+  const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
+  const headerRow = cva("grid border-b border-gray-300 bg-gray-50 font-medium");
+  const headerCell = cva("px-3 py-2 truncate");
+  const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
+  const bodyRow = cva("grid border-b border-gray-200");
+  const bodyWrapper = cva("relative flex-1 overflow-auto pb-14");
 </script>
 
 <template>
-  <div ref="tableElement" :class="tableRoot()" @paste="onPaste" @keydown.capture="onKeyDown" @copy.capture="onCopy">
+  <div ref="tableElement" :class="tableRoot()" @paste="handlePasteEvent" @keydown.capture="onKeyDown" @copy.capture="handleCopyEvent">
     <div :class="headerRow()" :style="gridStyle">
       <div :class="indexCell()">#</div>
       <div v-for="column in columns" :key="String(column.rowKey)" :class="headerCell()">
@@ -321,7 +148,7 @@
       </div>
     </div>
 
-    <div :class="bodyWrapper()">
+    <div :class="bodyWrapper()" ref="bodyWrapperElement">
       <div v-for="(row, rowIndex) in rows" :key="String(getRowId(row, rowIndex))" :class="bodyRow()" :style="gridStyle">
         <div :class="indexCell()" @click="onIndexClick(rowIndex, $event)">{{ rowIndex + 1 }}</div>
         <EditableTableCell
@@ -341,20 +168,11 @@
       </div>
     </div>
 
-    <div :class="footerRow()">
-      <div :class="footerContent()">
-        <template v-if="numericStats.length">
-          <label class="flex items-center gap-1 text-gray-500">
-            <select v-model="selectedStat" :class="footerSelect()">
-              <option v-for="option in statOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-          </label>
-          <span v-for="stat in numericStats" :key="stat.key" :class="footerStat()">
-            {{ stat.title }}:
-            <strong class="font-semibold text-gray-900">{{ stat.value }}</strong>
-          </span>
-        </template>
-      </div>
-    </div>
+    <EditableTableFooter
+      :rows="rows"
+      :columns="columns"
+      :selection-range="selectionRange"
+      :selected-row-indexes="selectedRowIndexes"
+      :selected-column-indexes="selectedColumnIndexes" />
   </div>
 </template>

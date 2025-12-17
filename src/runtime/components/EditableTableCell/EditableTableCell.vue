@@ -9,20 +9,78 @@
   import { ColumnType } from "@models/column";
 
   interface SelectionRange {
-    startRow: number;
-    endRow: number;
-    startCol: number;
-    endCol: number;
+    startRowIndex: number;
+    endRowIndex: number;
+    startColumnIndex: number;
+    endColumnIndex: number;
   }
+
+  type ArrowNavigationKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+
+  interface EditableTableCellProps {
+    rowId: string | number;
+    columnKey: TKey;
+    columnType?: ColumnType;
+
+    rowIndex: number;
+    columnIndex: number;
+
+    rowCount: number;
+    columnCount: number;
+
+    selectionRange?: SelectionRange | null;
+  }
+
+  const props = defineProps<EditableTableCellProps>();
 
   const emit = defineEmits<{
     (event: "cell-select", payload: { rowIndex: number; columnIndex: number; shift: boolean }): void;
     (event: "cell-focus", payload: { rowIndex: number; columnIndex: number }): void;
   }>();
 
-  /* --------------------------------------------------
-   * styles
-   * -------------------------------------------------- */
+  const value = defineModel<TRow[TKey]>();
+
+  const { isEditing, startEditing, stopEditing } = useEditableTableEditing();
+  const { activePosition, setActive, move, shouldHandleNavigationKey } = useEditableTableNavigation();
+
+  const keys = useMagicKeys({
+    passive: false,
+    onEventFired(event) {
+      if (event.type !== "keydown") return;
+      if (!navigationKeys.has(event.key)) return;
+
+      if (isFocused.value && !isActive.value) {
+        event.preventDefault();
+      }
+    }
+  });
+
+  const repeatTimeoutHandles = new Map<ArrowNavigationKey, number>();
+  const cellElement = ref<HTMLElement | null>(null);
+  const originalValue = ref<TRow[TKey] | null>(null);
+  const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
+  const isActive = computed(() =>
+    isEditing({
+      rowId: props.rowId,
+      columnKey: String(props.columnKey)
+    })
+  );
+
+  const isFocused = computed(
+    () => activePosition.value?.rowIndex === props.rowIndex && activePosition.value?.columnIndex === props.columnIndex
+  );
+
+  const isSelected = computed(() => {
+    if (!props.selectionRange) return false;
+    const { startRowIndex, endRowIndex, startColumnIndex, endColumnIndex } = props.selectionRange;
+    return (
+      props.rowIndex >= startRowIndex &&
+      props.rowIndex <= endRowIndex &&
+      props.columnIndex >= startColumnIndex &&
+      props.columnIndex <= endColumnIndex
+    );
+  });
 
   const cellClass = cva("relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent", {
     variants: {
@@ -41,73 +99,17 @@
     }
   });
 
-  /* --------------------------------------------------
-   * props & model
-   * -------------------------------------------------- */
-
-  const props = defineProps<{
-    rowId: string | number;
-    columnKey: TKey;
-    columnType?: ColumnType;
-
-    rowIndex: number;
-    columnIndex: number;
-
-    rowCount: number;
-    columnCount: number;
-
-    selectionRange?: SelectionRange | null;
-  }>();
-
-  const value = defineModel<TRow[TKey]>();
-
-  /* --------------------------------------------------
-   * editing state
-   * -------------------------------------------------- */
-
-  const { isEditing, startEditing, stopEditing } = useEditableTableEditing();
-
-  const isActive = computed(() =>
-    isEditing({
-      rowId: props.rowId,
-      columnKey: String(props.columnKey)
-    })
-  );
-
-  /* --------------------------------------------------
-   * navigation (DATA-DRIVEN)
-   * -------------------------------------------------- */
-
-  const { activePosition, setActive, move, shouldHandleNavigationKey } = useEditableTableNavigation();
-
-  const isFocused = computed(
-    () => activePosition.value?.rowIndex === props.rowIndex && activePosition.value?.columnIndex === props.columnIndex
-  );
-
-  const isSelected = computed(() => {
-    if (!props.selectionRange) return false;
-    const { startRow, endRow, startCol, endCol } = props.selectionRange;
-    return props.rowIndex >= startRow && props.rowIndex <= endRow && props.columnIndex >= startCol && props.columnIndex <= endCol;
-  });
-
-  /* --------------------------------------------------
-   * repeating navigation (hold to accelerate)
-   * -------------------------------------------------- */
-
-  type ArrowNavigationKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
-  const repeatHandles = new Map<ArrowNavigationKey, number>();
-
   function stopRepeat(key: ArrowNavigationKey) {
-    const handle = repeatHandles.get(key);
-    if (handle !== undefined) {
-      window.clearTimeout(handle);
-      repeatHandles.delete(key);
+    const timeoutHandle = repeatTimeoutHandles.get(key);
+    if (timeoutHandle !== undefined) {
+      window.clearTimeout(timeoutHandle);
+      repeatTimeoutHandles.delete(key);
     }
   }
 
   function stopAllRepeats() {
-    repeatHandles.forEach((handle) => window.clearTimeout(handle));
-    repeatHandles.clear();
+    repeatTimeoutHandles.forEach((timeoutHandle) => window.clearTimeout(timeoutHandle));
+    repeatTimeoutHandles.clear();
   }
 
   function startRepeat(key: ArrowNavigationKey, direction: "left" | "right" | "up" | "down") {
@@ -115,60 +117,45 @@
     move(direction, props.rowCount, props.columnCount);
 
     const initialDelay = 300;
-    const minDelay = 60;
+    const minimumDelay = 60;
     const accelerationFactor = 0.85;
 
     const schedule = (delay: number) => {
-      const handle = window.setTimeout(() => {
+      const timeoutHandle = window.setTimeout(() => {
         move(direction, props.rowCount, props.columnCount);
-        const nextDelay = Math.max(minDelay, delay * accelerationFactor);
+        const nextDelay = Math.max(minimumDelay, delay * accelerationFactor);
         schedule(nextDelay);
       }, delay);
 
-      repeatHandles.set(key, handle);
+      repeatTimeoutHandles.set(key, timeoutHandle);
     };
 
     schedule(initialDelay);
   }
 
-  /* --------------------------------------------------
-   * keep focused cell visible
-   * -------------------------------------------------- */
+  function onClick(event: MouseEvent) {
+    setActive({
+      rowIndex: props.rowIndex,
+      columnIndex: props.columnIndex
+    });
+    emit("cell-select", { rowIndex: props.rowIndex, columnIndex: props.columnIndex, shift: event.shiftKey });
+  }
 
-  const cellElement = ref<HTMLElement | null>(null);
+  function onDblClick() {
+    startEditing({
+      rowId: props.rowId,
+      columnKey: String(props.columnKey)
+    });
+  }
 
   watch(isFocused, (focused) => {
     if (!focused) return;
     cellElement.value?.scrollIntoView({ block: "nearest", inline: "nearest" });
   });
 
-  /* --------------------------------------------------
-   * value snapshot (Escape)
-   * -------------------------------------------------- */
-
-  const originalValue = ref<TRow[TKey] | null>(null);
-
   watch(isActive, (active) => {
     if (active) {
       originalValue.value = value.value;
-    }
-  });
-
-  /* --------------------------------------------------
-   * keyboard intent (VueUse)
-   * -------------------------------------------------- */
-
-  const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
-
-  const keys = useMagicKeys({
-    passive: false,
-    onEventFired(event) {
-      if (event.type !== "keydown") return;
-      if (!navigationKeys.has(event.key)) return;
-
-      if (isFocused.value && !isActive.value) {
-        event.preventDefault();
-      }
     }
   });
 
@@ -258,25 +245,6 @@
     startRepeat("ArrowDown", "down");
   });
 
-  /* --------------------------------------------------
-   * mouse interaction
-   * -------------------------------------------------- */
-
-  function onClick(event: MouseEvent) {
-    setActive({
-      rowIndex: props.rowIndex,
-      columnIndex: props.columnIndex
-    });
-    emit("cell-select", { rowIndex: props.rowIndex, columnIndex: props.columnIndex, shift: event.shiftKey });
-  }
-
-  function onDblClick() {
-    startEditing({
-      rowId: props.rowId,
-      columnKey: String(props.columnKey)
-    });
-  }
-
   onBeforeUnmount(() => {
     stopAllRepeats();
   });
@@ -286,10 +254,7 @@
   <div
     tabindex="0"
     ref="cellElement"
-    :class="[
-      cellClass({ active: isActive, focused: isFocused, selected: isSelected }),
-      !isActive ? 'select-none' : ''
-    ]"
+    :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected }), !isActive ? 'select-none' : '']"
     @click="onClick"
     @dblclick="onDblClick">
     <EditableTableCellEditor v-model="value" :type="columnType" @blur="stopEditing" class="w-full" :is-editable="isActive" />

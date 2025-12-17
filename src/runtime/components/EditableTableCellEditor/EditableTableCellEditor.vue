@@ -8,13 +8,15 @@
     isEditable?: boolean;
   }
 
+  const props = withDefaults(defineProps<EditableTableCellEditorProps>(), { type: "text", isEditable: false });
+
   const emit = defineEmits<{
     (event: "blur", e: FocusEvent): void;
   }>();
 
-  const props = withDefaults(defineProps<EditableTableCellEditorProps>(), { type: "text", isEditable: false });
-
   const value = defineModel<TValue>();
+
+  const editorRoot = ref<HTMLElement | null>(null);
 
   const contentClass = cva("block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0 select-text", {
     variants: {
@@ -27,8 +29,6 @@
       editable: false
     }
   });
-
-  const editorRoot = ref<HTMLElement | null>(null);
 
   async function focusInput() {
     if (!props.isEditable) return;
@@ -51,16 +51,16 @@
     }
   }
 
-  onMounted(() => {
-    focusInput();
-  });
-
   watch(
     () => props.isEditable,
     (editable) => {
       if (editable) focusInput();
     }
   );
+
+  onMounted(() => {
+    focusInput();
+  });
 </script>
 
 <template>
