@@ -6,6 +6,7 @@
   import { EditableTableProps } from "@models/table";
   import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
+  import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
@@ -20,8 +21,10 @@
   const selectionAnchor = ref<CellPosition | null>(null);
   const selectionEnd = ref<CellPosition | null>(null);
   const preserveSelectionOnNextFocus = ref(false);
+  const shouldBlockHeaderClick = ref(false);
 
   const tableElement = ref<HTMLElement | null>(null);
+  const headerRowElement = ref<HTMLElement | null>(null);
   const bodyWrapperElement = ref<HTMLElement | null>(null);
   const columnMenuPosition = ref<{ left: number; top: number } | null>(null);
   const columnMenuIndex = ref<number | null>(null);
@@ -70,12 +73,39 @@
     return Array.from({ length: safeEndColumnIndex - safeStartColumnIndex + 1 }, (_, columnOffset) => safeStartColumnIndex + columnOffset);
   });
 
+  const activeColumnMenu = computed(() => {
+    if (columnMenuIndex.value === null) return null;
+    return columns.value[columnMenuIndex.value] ?? null;
+  });
+
+  const draggingColumnClass = computed(() =>
+    isDragging.value ? "opacity-30 transition-opacity duration-150 ease-out" : "transition-opacity duration-150 ease-out"
+  );
+
+  const draggingColumnBodyClass = computed(() =>
+    isDragging.value ?
+      "opacity-30 pointer-events-none transition-opacity duration-150 ease-out"
+    : "transition-opacity duration-150 ease-out"
+  );
+
   const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
     rows,
     columns,
     selectionRange,
     selectedRowIndexes,
     selectedColumnIndexes
+  });
+
+  const {
+    dragPreviewStyle,
+    draggingColumn,
+    draggingColumnIndex,
+    isDragging,
+    onPointerDown: onColumnPointerDown
+  } = useEditableTableColumnDrag<TRow>({
+    columns,
+    tableElement,
+    headerRowElement
   });
 
   /**
@@ -164,6 +194,11 @@
     });
   }
 
+  /**
+   * Opens the column menu for the specified column index.
+   * @param columnIndex - The index of the column to open the menu for.
+   * @param event - The mouse or keyboard event that triggered the menu opening.
+   */
   function openColumnMenu(columnIndex: number, event: MouseEvent | KeyboardEvent) {
     const headerCellElement = event.currentTarget as HTMLElement | null;
     const tableRect = tableElement.value?.getBoundingClientRect();
@@ -178,11 +213,19 @@
     isColumnMenuVisible.value = true;
   }
 
+  /**
+   * Closes the column menu.
+   */
   function closeColumnMenu() {
     columnMenuIndex.value = null;
     columnMenuPosition.value = null;
+    isColumnMenuVisible.value = false;
   }
 
+  /**
+   * Updates the type of the currently selected column in the column menu.
+   * @param type - The new column type to set.
+   */
   function updateColumnType(type: ColumnType) {
     if (columnMenuIndex.value === null) return;
 
@@ -192,6 +235,20 @@
     });
   }
 
+  /**
+   * Handles header click events to open the column menu.
+   * @param columnIndex - The index of the clicked column.
+   * @param event - The mouse or keyboard event.
+   */
+  function onHeaderClick(columnIndex: number, event: MouseEvent | KeyboardEvent) {
+    if (shouldBlockHeaderClick.value) return;
+    openColumnMenu(columnIndex, event);
+  }
+
+  /**
+   * Moves the column at the current columnMenuIndex in the specified direction.
+   * @param direction - The direction to move the column ("left", "right", "first", "last").
+   */
   function moveColumn(direction: "left" | "right" | "first" | "last") {
     if (columnMenuIndex.value === null) return;
 
@@ -224,11 +281,6 @@
     columnMenuIndex.value = targetIndex;
   }
 
-  const activeColumnMenu = computed(() => {
-    if (columnMenuIndex.value === null) return null;
-    return columns.value[columnMenuIndex.value] ?? null;
-  });
-
   watch(
     columns,
     () => {
@@ -240,8 +292,25 @@
     { deep: true }
   );
 
+  watch(isDragging, (active) => {
+    if (active) {
+      isColumnMenuVisible.value = false;
+      columnMenuIndex.value = null;
+      shouldBlockHeaderClick.value = true;
+      return;
+    }
+
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        shouldBlockHeaderClick.value = false;
+      });
+    } else {
+      shouldBlockHeaderClick.value = false;
+    }
+  });
+
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
-  const headerRow = cva("grid border-b border-gray-300 bg-gray-50 font-medium");
+  const headerRow = cva("relative grid border-b border-gray-300 bg-gray-50 font-medium");
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
@@ -250,18 +319,27 @@
 
 <template>
   <div ref="tableElement" :class="tableRoot()" @paste="handlePasteEvent" @keydown.capture="onKeyDown" @copy.capture="handleCopyEvent">
-    <div :class="headerRow()" :style="gridStyle">
+    <div ref="headerRowElement" :class="headerRow()" :style="gridStyle">
       <div :class="indexCell()">#</div>
       <div
         v-for="(column, columnIndex) in columns"
         :key="String(column.rowKey)"
-        :class="headerCell()"
+        :class="[headerCell(), draggingColumnIndex === columnIndex ? draggingColumnClass : '']"
         role="button"
         tabindex="0"
-        @click="openColumnMenu(columnIndex, $event)"
-        @keydown.enter.prevent="openColumnMenu(columnIndex, $event)"
-        @keydown.space.prevent="openColumnMenu(columnIndex, $event)">
+        :data-column-index="columnIndex"
+        :data-column-key="String(column.rowKey)"
+        @pointerdown="onColumnPointerDown(columnIndex, $event)"
+        @click="onHeaderClick(columnIndex, $event)"
+        @keydown.enter.prevent="onHeaderClick(columnIndex, $event)"
+        @keydown.space.prevent="onHeaderClick(columnIndex, $event)">
         {{ column.title }}
+      </div>
+    </div>
+
+    <div v-if="isDragging && dragPreviewStyle && draggingColumn" class="pointer-events-none absolute z-20" :style="dragPreviewStyle">
+      <div class="rounded-md border border-blue-200 bg-white px-3 py-2 shadow-lg ring-2 ring-blue-100">
+        {{ draggingColumn.title }}
       </div>
     </div>
 
@@ -280,6 +358,7 @@
           :row-count="rows.length"
           :column-count="columns.length"
           :selection-range="selectionRange"
+          :class="draggingColumnIndex === columnIndex ? draggingColumnBodyClass : ''"
           @cell-select="onCellSelect"
           @cell-focus="onCellFocus" />
       </div>
