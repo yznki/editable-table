@@ -10,7 +10,7 @@ export interface TableSelectionRange {
 
 export interface ClipboardOptions<TRow extends Record<string, any>> {
   rows: Ref<TRow[]>;
-  columns: EditableTableColumn<TRow>[];
+  columns: Ref<EditableTableColumn<TRow>[]>;
   selectionRange: ComputedRef<TableSelectionRange | null>;
   selectedRowIndexes: ComputedRef<number[]>;
   selectedColumnIndexes: ComputedRef<number[]>;
@@ -20,7 +20,7 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
   const { rows, columns, selectionRange, selectedRowIndexes, selectedColumnIndexes } = options;
 
   function applyValueToCell(rowIndex: number, columnIndex: number, rawValue: string) {
-    const column = columns[columnIndex];
+    const column = columns.value[columnIndex];
     if (!column) return;
 
     const key = column.rowKey as keyof TRow;
@@ -53,7 +53,7 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
 
     const matrix = rowIndexes.map((rowIndex) =>
       columnIndexes.map((columnIndex) => {
-        const column = columns[columnIndex];
+        const column = columns.value[columnIndex];
         if (!column) return "";
         const value = rows.value[rowIndex]?.[column.rowKey];
         return value ?? "";
