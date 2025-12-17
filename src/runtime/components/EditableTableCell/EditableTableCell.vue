@@ -133,7 +133,8 @@
     schedule(initialDelay);
   }
 
-  function onClick(event: MouseEvent) {
+  function onMouseDown(event: MouseEvent) {
+    if (event.button !== 0) return;
     setActive({
       rowIndex: props.rowIndex,
       columnIndex: props.columnIndex
@@ -255,7 +256,7 @@
     tabindex="0"
     ref="cellElement"
     :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected }), !isActive ? 'select-none' : '']"
-    @click="onClick"
+    @mousedown="onMouseDown"
     @dblclick="onDblClick">
     <EditableTableCellEditor v-model="value" :type="columnType" @blur="stopEditing" class="w-full" :is-editable="isActive" />
   </div>

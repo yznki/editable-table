@@ -18,7 +18,6 @@ export interface NavigationContext {
   selectionState: NavigationSelectionState;
   activePosition: Ref<TableCellPosition | null>;
   setActive: (position: TableCellPosition) => void;
-  setSelection: (position: TableCellPosition, extend: boolean) => void;
   scrollContainer?: Ref<HTMLElement | null>;
 }
 
@@ -78,7 +77,6 @@ export function useEditableTableNavigation() {
       selectionState,
       activePosition: positionRef,
       setActive: setActivePosition,
-      setSelection,
       scrollContainer
     } = context;
 

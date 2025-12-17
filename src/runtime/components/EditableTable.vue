@@ -160,7 +160,6 @@
       selectionState,
       activePosition,
       setActive,
-      setSelection,
       scrollContainer: bodyWrapperElement
     });
   }
