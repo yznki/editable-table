@@ -33,6 +33,7 @@
   "dependencies": {
     "@nuxt/kit": "^4.2.2",
     "@vueuse/core": "^14.1.0",
+    "active-table": "^1.1.7",
     "class-variance-authority": "^0.7.1"
   },
   "devDependencies": {
