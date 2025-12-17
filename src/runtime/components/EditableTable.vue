@@ -193,11 +193,29 @@
     });
   }
 
-  function moveColumn(direction: "left" | "right") {
+  function moveColumn(direction: "left" | "right" | "first" | "last") {
     if (columnMenuIndex.value === null) return;
 
-    const targetIndex = columnMenuIndex.value + (direction === "left" ? -1 : 1);
-    if (targetIndex < 0 || targetIndex >= columns.value.length) return;
+    let targetIndex = columnMenuIndex.value;
+
+    switch (direction) {
+      case "left":
+        targetIndex = columnMenuIndex.value - 1;
+        break;
+      case "right":
+        targetIndex = columnMenuIndex.value + 1;
+        break;
+      case "first":
+        targetIndex = 0;
+        break;
+      case "last":
+        targetIndex = columns.value.length - 1;
+        break;
+    }
+
+    if (targetIndex < 0 || targetIndex >= columns.value.length || targetIndex === columnMenuIndex.value) {
+      return;
+    }
 
     const updatedColumns = [...columns.value];
     const [movedColumn] = updatedColumns.splice(columnMenuIndex.value, 1);
@@ -295,6 +313,8 @@
       :can-move-right="(columnMenuIndex ?? 0) < columns.length - 1"
       @select-type="updateColumnType"
       @move-left="moveColumn('left')"
-      @move-right="moveColumn('right')" />
+      @move-right="moveColumn('right')"
+      @move-first="moveColumn('first')"
+      @move-last="moveColumn('last')" />
   </div>
 </template>

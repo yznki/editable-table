@@ -3,6 +3,7 @@
   import { cva } from "class-variance-authority";
   import { ColumnType } from "@models/column";
   import ContextMenu from "../ContextMenu/ContextMenu.vue";
+  import { useMagicKeys } from "@vueuse/core";
 
   interface ColumnTypeOption {
     value: ColumnType;
@@ -24,7 +25,13 @@
     (event: "select-type", type: ColumnType): void;
     (event: "move-left"): void;
     (event: "move-right"): void;
+    (event: "move-first"): void;
+    (event: "move-last"): void;
   }>();
+
+  const { current } = useMagicKeys();
+
+  const isShiftHeld = computed(() => current.has("shift"));
 
   const isVisible = defineModel<boolean>({ default: false });
 
@@ -73,13 +80,13 @@
 
   function onMoveLeft() {
     if (!props.canMoveLeft) return;
-    emit("move-left");
+    isShiftHeld.value ? emit("move-first") : emit("move-left");
     isVisible.value = false;
   }
 
   function onMoveRight() {
     if (!props.canMoveRight) return;
-    emit("move-right");
+    isShiftHeld.value ? emit("move-last") : emit("move-right");
     isVisible.value = false;
   }
 
@@ -112,9 +119,11 @@
     </div>
 
     <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
-      <button type="button" :class="actionClass({ disabled: !canMoveLeft })" :disabled="!canMoveLeft" @click="onMoveLeft">Move left</button>
+      <button type="button" :class="actionClass({ disabled: !canMoveLeft })" :disabled="!canMoveLeft" @click="onMoveLeft">
+        Move {{ !isShiftHeld ? "left" : "to start" }}
+      </button>
       <button type="button" :class="actionClass({ disabled: !canMoveRight })" :disabled="!canMoveRight" @click="onMoveRight">
-        Move right
+        Move {{ !isShiftHeld ? "right" : "to end" }}
       </button>
     </div>
   </ContextMenu>
