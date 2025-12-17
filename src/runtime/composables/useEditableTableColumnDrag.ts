@@ -100,7 +100,8 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
 
     for (let index = 0; index < metrics.length; index++) {
       const { left, width } = metrics[index];
-      if (relativeX < left + width / 2) return index;
+      const swapThreshold = width * 0.35;
+      if (relativeX < left + swapThreshold) return index;
     }
 
     return metrics.length;
