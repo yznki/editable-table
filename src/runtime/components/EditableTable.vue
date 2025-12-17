@@ -241,15 +241,6 @@
     { deep: true }
   );
 
-  const columnTypeOptions: { value: ColumnType; label: string }[] = [
-    { value: "text", label: "Text" },
-    { value: "number", label: "Number" },
-    { value: "boolean", label: "Boolean" },
-    { value: "select", label: "Select" },
-    { value: "date", label: "Date" },
-    { value: "custom", label: "Custom" }
-  ];
-
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
   const headerRow = cva("grid border-b border-gray-300 bg-gray-50 font-medium");
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
@@ -303,14 +294,12 @@
       :selected-column-indexes="selectedColumnIndexes" />
 
     <EditableTableColumnMenu
-      v-if="columnMenuIndex !== null && columnMenuPosition"
+      v-if="columnMenuIndex !== null && columnMenuPosition && activeColumnMenu"
       v-model="isColumnMenuVisible"
       :position="columnMenuPosition"
-      :column-title="activeColumnMenu?.title ?? ''"
-      :column-type="activeColumnMenu?.type ?? 'text'"
-      :available-types="columnTypeOptions"
-      :can-move-left="(columnMenuIndex ?? 0) > 0"
-      :can-move-right="(columnMenuIndex ?? 0) < columns.length - 1"
+      :column="activeColumnMenu"
+      :column-index="columnMenuIndex"
+      :columns-length="columns.length"
       @select-type="updateColumnType"
       @move-left="moveColumn('left')"
       @move-right="moveColumn('right')"

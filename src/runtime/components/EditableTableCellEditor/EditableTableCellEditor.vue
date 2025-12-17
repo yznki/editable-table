@@ -18,11 +18,11 @@
 
   const editorRoot = ref<HTMLElement | null>(null);
 
-  const contentClass = cva("block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0 select-text", {
+  const contentClass = cva("block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0", {
     variants: {
       editable: {
-        true: "",
-        false: "text-gray-800"
+        true: "select-text",
+        false: "select-none text-gray-800"
       }
     },
     defaultVariants: {
