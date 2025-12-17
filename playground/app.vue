@@ -5,6 +5,7 @@
     id: number;
     name: string;
     age: number;
+    age2: number;
     active: boolean;
     joinedAt: string;
   };
@@ -20,6 +21,7 @@
         id: i,
         name: `${name} ${i}`,
         age: 20 + ((i * 7) % 20),
+        age2: 30 + ((i * 5) % 25),
         active: i % 2 === 0,
         joinedAt: new Date(2020 + (i % 5), (i * 3) % 12, ((i * 5) % 28) + 1).toISOString().slice(0, 10)
       });
@@ -38,6 +40,11 @@
     {
       rowKey: "age",
       title: "Age",
+      type: "number"
+    },
+    {
+      rowKey: "age2",
+      title: "Age 2",
       type: "number"
     },
     {

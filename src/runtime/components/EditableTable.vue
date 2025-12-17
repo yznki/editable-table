@@ -71,11 +71,21 @@
     selectedColumnIndexes
   });
 
+  /**
+   * Gets the unique identifier for a given row.
+   * @param row - The row object.
+   * @param rowIndex - The index of the row.
+   */
   const getRowId = (row: TRow, rowIndex: number) => {
     const rowId = row[props.idPropertyName as keyof TRow];
     return rowId ?? rowIndex;
   };
 
+  /**
+   * Sets the selection range based on the given position.
+   * @param position - The cell position to set the selection to.
+   * @param shouldExtendSelection - Whether to extend the current selection or start a new one.
+   */
   function setSelection(position: CellPosition, shouldExtendSelection: boolean) {
     if (shouldExtendSelection && selectionAnchor.value) {
       selectionEnd.value = position;
@@ -86,6 +96,11 @@
     selectionEnd.value = position;
   }
 
+  /**
+   * Handles click events on the index cell to select entire rows.
+   * @param rowIndex - The index of the row that was clicked.
+   * @param event - The mouse event.
+   */
   function onIndexClick(rowIndex: number, event: MouseEvent) {
     const position: CellPosition = { rowIndex, columnIndex: 0 };
     const shouldExtendSelection = event.shiftKey && selectionAnchor.value !== null;
@@ -95,12 +110,20 @@
     preserveSelectionOnNextFocus.value = shouldExtendSelection;
   }
 
+  /**
+   * Handles cell selection events.
+   * @param payload - The payload containing row and column indexes of the selected cell and whether to extend the selection.
+   */
   function onCellSelect(payload: { rowIndex: number; columnIndex: number; shift: boolean }) {
     const { rowIndex, columnIndex, shift } = payload;
     setSelection({ rowIndex, columnIndex }, shift);
     preserveSelectionOnNextFocus.value = shift;
   }
 
+  /**
+   * Handles cell focus events.
+   * @param payload - The payload containing row and column indexes of the focused cell.
+   */
   function onCellFocus(payload: { rowIndex: number; columnIndex: number }) {
     if (preserveSelectionOnNextFocus.value && selectionAnchor.value) {
       selectionEnd.value = { rowIndex: payload.rowIndex, columnIndex: payload.columnIndex };
@@ -112,6 +135,10 @@
     setSelection({ rowIndex: payload.rowIndex, columnIndex: payload.columnIndex }, false);
   }
 
+  /**
+   * Handles keydown events for table navigation and selection.
+   * @param event - The keyboard event.
+   */
   function onKeyDown(event: KeyboardEvent) {
     const selectionState: NavigationSelectionState = {
       selectionAnchor,
