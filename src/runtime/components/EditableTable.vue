@@ -1,18 +1,24 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { computed, ref } from "vue";
+  import { computed, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
+  import { ColumnType, EditableTableColumn } from "@models/column";
   import { EditableTableProps } from "@models/table";
   import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
+  import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
 
   const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id" });
+  const emit = defineEmits<{
+    (event: "update:columns", columns: EditableTableColumn<TRow>[]): void;
+  }>();
 
   const rows = defineModel<TRow[]>({ default: () => [] });
+  const columns = ref<EditableTableColumn<TRow>[]>([...props.columns]);
 
   const selectionAnchor = ref<CellPosition | null>(null);
   const selectionEnd = ref<CellPosition | null>(null);
@@ -20,6 +26,8 @@
 
   const tableElement = ref<HTMLElement | null>(null);
   const bodyWrapperElement = ref<HTMLElement | null>(null);
+  const columnMenuPosition = ref<{ left: number; top: number } | null>(null);
+  const columnMenuIndex = ref<number | null>(null);
   const indexColumnWidth = "3rem";
 
   const { clearActive, activePosition, setActive, handleTableKeyDown } = useEditableTableNavigation();
@@ -30,8 +38,15 @@
     selectionEnd.value = null;
   });
 
+  watch(
+    () => props.columns,
+    (incomingColumns) => {
+      columns.value = [...incomingColumns];
+    }
+  );
+
   const gridStyle = computed(() => ({
-    gridTemplateColumns: `${indexColumnWidth} repeat(${props.columns.length}, minmax(0, 1fr))`
+    gridTemplateColumns: `${indexColumnWidth} repeat(${columns.value.length}, minmax(0, 1fr))`
   }));
 
   const selectionRange = computed<TableSelectionRange | null>(() => {
@@ -55,9 +70,9 @@
 
   const selectedColumnIndexes = computed(() => {
     if (!selectionRange.value) return [];
-    if (!props.columns.length) return [];
+    if (!columns.value.length) return [];
     const { startColumnIndex, endColumnIndex } = selectionRange.value;
-    const maximumColumnIndex = Math.max(0, props.columns.length - 1);
+    const maximumColumnIndex = Math.max(0, columns.value.length - 1);
     const safeStartColumnIndex = Math.min(Math.max(startColumnIndex, 0), maximumColumnIndex);
     const safeEndColumnIndex = Math.min(Math.max(endColumnIndex, 0), maximumColumnIndex);
     return Array.from({ length: safeEndColumnIndex - safeStartColumnIndex + 1 }, (_, columnOffset) => safeStartColumnIndex + columnOffset);
@@ -65,7 +80,7 @@
 
   const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
     rows,
-    columns: props.columns,
+    columns,
     selectionRange,
     selectedRowIndexes,
     selectedColumnIndexes
@@ -106,7 +121,7 @@
     const shouldExtendSelection = event.shiftKey && selectionAnchor.value !== null;
     setSelection({ ...position, columnIndex: 0 }, shouldExtendSelection);
     selectionAnchor.value = selectionAnchor.value ? { ...selectionAnchor.value, columnIndex: 0 } : position;
-    selectionEnd.value = { rowIndex, columnIndex: Math.max(0, props.columns.length - 1) };
+    selectionEnd.value = { rowIndex, columnIndex: Math.max(0, columns.value.length - 1) };
     preserveSelectionOnNextFocus.value = shouldExtendSelection;
   }
 
@@ -149,7 +164,7 @@
     handleTableKeyDown({
       event,
       rowsLength: rows.value.length,
-      columnsLength: props.columns.length,
+      columnsLength: columns.value.length,
       selectionState,
       activePosition,
       setActive,
@@ -158,9 +173,64 @@
     });
   }
 
+  function openColumnMenu(columnIndex: number, event: MouseEvent | KeyboardEvent) {
+    const headerCellElement = event.currentTarget as HTMLElement | null;
+    const tableRect = tableElement.value?.getBoundingClientRect();
+    const headerRect = headerCellElement?.getBoundingClientRect();
+    if (!tableRect || !headerRect) return;
+
+    columnMenuIndex.value = columnIndex;
+    columnMenuPosition.value = {
+      left: headerRect.left - tableRect.left + headerRect.width / 2,
+      top: headerRect.bottom - tableRect.top + 8
+    };
+  }
+
+  function closeColumnMenu() {
+    columnMenuIndex.value = null;
+    columnMenuPosition.value = null;
+  }
+
+  function updateColumnType(type: ColumnType) {
+    if (columnMenuIndex.value === null) return;
+
+    const updatedColumns = columns.value.map((column, index) => {
+      if (index !== columnMenuIndex.value) return column;
+      return { ...column, type };
+    });
+
+    columns.value = updatedColumns;
+    emit("update:columns", updatedColumns);
+  }
+
+  const activeColumnMenu = computed(() => {
+    if (columnMenuIndex.value === null) return null;
+    return columns.value[columnMenuIndex.value] ?? null;
+  });
+
+  watch(
+    columns,
+    () => {
+      if (columnMenuIndex.value === null) return;
+      if (!columns.value[columnMenuIndex.value]) {
+        closeColumnMenu();
+      }
+    },
+    { deep: true }
+  );
+
+  const columnTypeOptions: { value: ColumnType; label: string }[] = [
+    { value: "text", label: "Text" },
+    { value: "number", label: "Number" },
+    { value: "boolean", label: "Boolean" },
+    { value: "select", label: "Select" },
+    { value: "date", label: "Date" },
+    { value: "custom", label: "Custom" }
+  ];
+
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
   const headerRow = cva("grid border-b border-gray-300 bg-gray-50 font-medium");
-  const headerCell = cva("px-3 py-2 truncate");
+  const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const bodyWrapper = cva("relative flex-1 overflow-auto");
@@ -170,7 +240,15 @@
   <div ref="tableElement" :class="tableRoot()" @paste="handlePasteEvent" @keydown.capture="onKeyDown" @copy.capture="handleCopyEvent">
     <div :class="headerRow()" :style="gridStyle">
       <div :class="indexCell()">#</div>
-      <div v-for="column in columns" :key="String(column.rowKey)" :class="headerCell()">
+      <div
+        v-for="(column, columnIndex) in columns"
+        :key="String(column.rowKey)"
+        :class="headerCell()"
+        role="button"
+        tabindex="0"
+        @click="openColumnMenu(columnIndex, $event)"
+        @keydown.enter.prevent="openColumnMenu(columnIndex, $event)"
+        @keydown.space.prevent="openColumnMenu(columnIndex, $event)">
         {{ column.title }}
       </div>
     </div>
@@ -201,5 +279,15 @@
       :selection-range="selectionRange"
       :selected-row-indexes="selectedRowIndexes"
       :selected-column-indexes="selectedColumnIndexes" />
+
+    <EditableTableColumnMenu
+      v-if="columnMenuIndex !== null && columnMenuPosition"
+      :is-open="columnMenuIndex !== null"
+      :position="columnMenuPosition"
+      :column-title="activeColumnMenu?.title ?? ''"
+      :column-type="activeColumnMenu?.type ?? 'text'"
+      :available-types="columnTypeOptions"
+      @close="closeColumnMenu"
+      @select-type="updateColumnType" />
   </div>
 </template>
