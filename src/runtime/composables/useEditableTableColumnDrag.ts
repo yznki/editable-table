@@ -90,7 +90,7 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
         } satisfies ColumnMetric;
       })
       .filter((metric) => metric.key && metric.key !== activeKey)
-      .sort((a, b) => a.left - b.left);
+      .sort((metricA, metricB) => metricA.left - metricB.left);
   }
 
   function findInsertionIndex(relativeX: number, activeKey: string | null) {
@@ -100,8 +100,7 @@ export function useEditableTableColumnDrag<TRow extends Record<string, any>>(opt
 
     for (let index = 0; index < metrics.length; index++) {
       const { left, width } = metrics[index];
-      const swapThreshold = width * 0.35;
-      if (relativeX < left + swapThreshold) return index;
+      if (relativeX < left + width) return index;
     }
 
     return metrics.length;
