@@ -13,19 +13,20 @@
     columnTitle: string;
     columnType: ColumnType;
     position: { left: number; top: number };
-    isOpen: boolean;
     availableTypes: ColumnTypeOption[];
     canMoveLeft: boolean;
     canMoveRight: boolean;
   }
 
   const props = defineProps<EditableTableColumnMenuProps>();
+
   const emit = defineEmits<{
-    (event: "close"): void;
     (event: "select-type", type: ColumnType): void;
     (event: "move-left"): void;
     (event: "move-right"): void;
   }>();
+
+  const isVisible = defineModel<boolean>({ default: false });
 
   const isTypeSelectorOpen = ref(false);
 
@@ -58,15 +59,6 @@
 
   const menuPosition = computed(() => props.position);
 
-  watch(
-    () => props.isOpen,
-    (open) => {
-      if (!open) {
-        isTypeSelectorOpen.value = false;
-      }
-    }
-  );
-
   function toggleTypeSelector() {
     isTypeSelectorOpen.value = !isTypeSelectorOpen.value;
   }
@@ -75,17 +67,38 @@
     const value = (event.target as HTMLSelectElement | null)?.value as ColumnType | undefined;
     if (!value) return;
     emit("select-type", value);
-    emit("close");
+    isVisible.value = false;
     isTypeSelectorOpen.value = false;
   }
+
+  function onMoveLeft() {
+    if (!props.canMoveLeft) return;
+    emit("move-left");
+    isVisible.value = false;
+  }
+
+  function onMoveRight() {
+    if (!props.canMoveRight) return;
+    emit("move-right");
+    isVisible.value = false;
+  }
+
+  watch(
+    () => isVisible.value,
+    (open) => {
+      if (!open) {
+        isTypeSelectorOpen.value = false;
+      }
+    }
+  );
 </script>
 
 <template>
-  <ContextMenu :is-open="isOpen" :position="menuPosition" align="center" @close="emit('close')">
+  <ContextMenu v-model="isVisible" :position="menuPosition" alignment="center">
     <div :class="titleClass()">
       {{ columnTitle }}
     </div>
-    <button type="button" :class="optionClass({ active: isTypeSelectorOpen })" @click="toggleTypeSelector">
+    <button v-if="!isTypeSelectorOpen" type="button" :class="optionClass({ active: isTypeSelectorOpen })" @click="toggleTypeSelector">
       <span class="font-medium">Type</span>
       <span class="text-xs text-gray-500">{{ columnType }}</span>
     </button>
@@ -99,30 +112,8 @@
     </div>
 
     <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
-      <button
-        type="button"
-        :class="actionClass({ disabled: !canMoveLeft })"
-        :disabled="!canMoveLeft"
-        @click="
-          () => {
-            if (!canMoveLeft) return;
-            emit('move-left');
-            emit('close');
-          }
-        ">
-        Move left
-      </button>
-      <button
-        type="button"
-        :class="actionClass({ disabled: !canMoveRight })"
-        :disabled="!canMoveRight"
-        @click="
-          () => {
-            if (!canMoveRight) return;
-            emit('move-right');
-            emit('close');
-          }
-        ">
+      <button type="button" :class="actionClass({ disabled: !canMoveLeft })" :disabled="!canMoveLeft" @click="onMoveLeft">Move left</button>
+      <button type="button" :class="actionClass({ disabled: !canMoveRight })" :disabled="!canMoveRight" @click="onMoveRight">
         Move right
       </button>
     </div>

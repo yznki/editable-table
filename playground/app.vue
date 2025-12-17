@@ -31,7 +31,7 @@
 
   const rows = ref<UserRow[]>(generateRows());
 
-  const columns: EditableTableColumn<UserRow>[] = [
+  const columns = ref<EditableTableColumn<UserRow>[]>([
     {
       rowKey: "name",
       title: "Name",
@@ -57,14 +57,14 @@
       title: "Joined",
       type: "date"
     }
-  ];
+  ]);
 </script>
 
 <template>
   <div style="padding: 24px">
     <h1>Editable Table Playground</h1>
 
-    <EditableTable v-model="rows" :columns="columns" id-property-name="id" />
+    <EditableTable v-model="rows" v-model:columns="columns" id-property-name="id" />
 
     <!-- <pre>
       {{ rows.length }}

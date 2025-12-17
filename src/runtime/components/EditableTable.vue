@@ -15,7 +15,7 @@
   const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id" });
 
   const rows = defineModel<TRow[]>({ default: () => [] });
-  const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [...props.columns] });
+  const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [] });
 
   const selectionAnchor = ref<CellPosition | null>(null);
   const selectionEnd = ref<CellPosition | null>(null);
@@ -26,6 +26,8 @@
   const columnMenuPosition = ref<{ left: number; top: number } | null>(null);
   const columnMenuIndex = ref<number | null>(null);
   const indexColumnWidth = "3rem";
+
+  const isColumnMenuVisible = ref(false);
 
   const { clearActive, activePosition, setActive, handleTableKeyDown } = useEditableTableNavigation();
 
@@ -174,6 +176,7 @@
       left: headerRect.left - tableRect.left + headerRect.width / 2,
       top: headerRect.bottom - tableRect.top + 8
     };
+    isColumnMenuVisible.value = true;
   }
 
   function closeColumnMenu() {
@@ -283,14 +286,13 @@
 
     <EditableTableColumnMenu
       v-if="columnMenuIndex !== null && columnMenuPosition"
-      :is-open="columnMenuIndex !== null"
+      v-model="isColumnMenuVisible"
       :position="columnMenuPosition"
       :column-title="activeColumnMenu?.title ?? ''"
       :column-type="activeColumnMenu?.type ?? 'text'"
       :available-types="columnTypeOptions"
       :can-move-left="(columnMenuIndex ?? 0) > 0"
       :can-move-right="(columnMenuIndex ?? 0) < columns.length - 1"
-      @close="closeColumnMenu"
       @select-type="updateColumnType"
       @move-left="moveColumn('left')"
       @move-right="moveColumn('right')" />
