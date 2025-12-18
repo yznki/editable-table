@@ -25,6 +25,7 @@ type NavigationKey = "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown" | "Tab
 
 const activePosition = ref<TableCellPosition | null>(null);
 const handledNavigationKeys = new Set<NavigationKey>();
+const shouldScrollOnNextFocus = ref(true);
 
 export function useEditableTableNavigation() {
   function setActive(position: TableCellPosition) {
@@ -143,6 +144,14 @@ export function useEditableTableNavigation() {
     return true;
   }
 
+  function disableScrollOnNextFocus() {
+    shouldScrollOnNextFocus.value = false;
+  }
+
+  function allowScrollOnNextFocus() {
+    shouldScrollOnNextFocus.value = true;
+  }
+
   onBeforeUnmount(() => {
     handledNavigationKeys.clear();
   });
@@ -153,6 +162,9 @@ export function useEditableTableNavigation() {
     clearActive,
     move,
     handleTableKeyDown,
-    shouldHandleNavigationKey
+    shouldHandleNavigationKey,
+    shouldScrollOnNextFocus,
+    disableScrollOnNextFocus,
+    allowScrollOnNextFocus
   };
 }
