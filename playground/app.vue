@@ -1,77 +1,235 @@
 <script setup lang="ts">
+  import { computed, ref } from "vue";
   import type { EditableTableColumn } from "@models/column";
 
-  type UserRow = {
+  type MemberRow = {
     id: number;
     name: string;
-    age: number;
-    age2: number;
+    role: string;
+    squad: string;
+    tickets: number;
     active: boolean;
     joinedAt: string;
   };
 
-  const rowCount = 5;
+  const baseRows: MemberRow[] = [
+    { id: 101, name: "Lena Rivers", role: "Product Designer", squad: "Atlas", tickets: 12, active: true, joinedAt: "2022-03-14" },
+    { id: 102, name: "Milo Park", role: "Staff Engineer", squad: "Atlas", tickets: 8, active: true, joinedAt: "2021-09-30" },
+    { id: 103, name: "Ivy Santos", role: "Data Analyst", squad: "Aurora", tickets: 6, active: true, joinedAt: "2020-11-12" },
+    { id: 104, name: "Rei Onishi", role: "Product Manager", squad: "Helix", tickets: 4, active: false, joinedAt: "2019-06-01" },
+    { id: 105, name: "Zoe Malik", role: "QA Lead", squad: "Nova", tickets: 9, active: true, joinedAt: "2023-01-09" },
+    { id: 106, name: "Caleb Noor", role: "Ops Engineer", squad: "Atlas", tickets: 3, active: true, joinedAt: "2022-07-21" },
+    { id: 107, name: "Ari Chen", role: "UX Researcher", squad: "Aurora", tickets: 5, active: false, joinedAt: "2021-02-18" },
+    { id: 108, name: "Sofia Marin", role: "Frontend Engineer", squad: "Nova", tickets: 7, active: true, joinedAt: "2023-05-11" }
+  ];
 
-  function generateRows() {
-    const mockNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"];
-    const result: UserRow[] = [];
-    for (let i = 1; i <= rowCount; i++) {
-      const name = mockNames[(i - 1) % mockNames.length];
-      result.push({
-        id: i,
-        name: `${name} ${i}`,
-        age: 20 + ((i * 7) % 20),
-        age2: 30 + ((i * 5) % 25),
-        active: i % 2 === 0,
-        joinedAt: new Date(2020 + (i % 5), (i * 3) % 12, ((i * 5) % 28) + 1).toISOString().slice(0, 10)
-      });
-    }
-    return result;
+  const columns = ref<EditableTableColumn<MemberRow>[]>([
+    { rowKey: "name", title: "Name", type: "text" },
+    { rowKey: "role", title: "Role", type: "text" },
+    { rowKey: "squad", title: "Squad", type: "text" },
+    { rowKey: "tickets", title: "Open tickets", type: "number" },
+    { rowKey: "active", title: "Active", type: "boolean" },
+    { rowKey: "joinedAt", title: "Joined", type: "date" }
+  ]);
+
+  const rows = ref<MemberRow[]>(cloneRows(baseRows));
+
+  const activeCount = computed(() => rows.value.filter((row) => row.active).length);
+  const totalTickets = computed(() => rows.value.reduce((total, row) => total + (Number(row.tickets) || 0), 0));
+  const avgTickets = computed(() => (rows.value.length ? (totalTickets.value / rows.value.length).toFixed(1) : "0"));
+  const newestJoin = computed(() => {
+    const dates = rows.value
+      .map((row) => row.joinedAt)
+      .filter(Boolean)
+      .sort();
+    return dates.length ? dates[dates.length - 1] : "";
+  });
+  const rowsPreview = computed(() => JSON.stringify(rows.value.slice(0, 4), null, 2));
+
+  const hotkeys = [
+    { combo: "Enter", note: "Start editing; press again to commit and move down" },
+    { combo: "Tab / Shift+Tab", note: "Move horizontally and commit the current edit" },
+    { combo: "Shift + arrows", note: "Extend selection across rows or columns" },
+    { combo: "Cmd/Ctrl + arrows", note: "Jump to the start/end of a row or column" },
+    { combo: "Cmd/Ctrl + C / V", note: "Copy/paste ranges directly from spreadsheets" },
+    { combo: "Cmd/Ctrl + Z / Y", note: "Undo and redo table history" }
+  ];
+
+  const tips = [
+    "Drag headers to reorder columns; a ghost badge keeps context.",
+    "Click a header to sort; toggle type switching on to see coercion in action.",
+    "Right-click the row number for quick insert, move, or delete.",
+    "Use the Add row button to append a row then start typing immediately.",
+    "Select any number columns to see live sums/averages in the footer."
+  ];
+
+  function cloneRows(source: MemberRow[]) {
+    return source.map((row) => ({ ...row }));
   }
 
-  const rows = ref<UserRow[]>(generateRows());
+  function resetRows() {
+    rows.value = cloneRows(baseRows);
+  }
 
-  const columns = ref<EditableTableColumn<UserRow>[]>([
-    {
-      rowKey: "name",
-      title: "Name",
-      type: "text"
-    },
-    {
-      rowKey: "age",
-      title: "Age",
-      type: "number"
-    },
-    {
-      rowKey: "age2",
-      title: "Age 2",
-      type: "number"
-    },
-    {
-      rowKey: "active",
-      title: "Active",
-      type: "boolean"
-    },
-    {
-      rowKey: "joinedAt",
-      title: "Joined",
-      type: "date"
-    }
-  ]);
+  function addSampleRow() {
+    rows.value = [
+      ...rows.value,
+      {
+        id: Date.now(),
+        name: `New hire ${rows.value.length + 1}`,
+        role: "Engineer",
+        squad: "Nova",
+        tickets: Math.floor(Math.random() * 6) + 2,
+        active: true,
+        joinedAt: new Date().toISOString().slice(0, 10)
+      }
+    ];
+  }
+
+  function formatDate(date: string) {
+    if (!date) return "—";
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return date;
+    return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
 </script>
 
 <template>
-  <div style="padding: 24px">
-    <h1>Editable Table Playground</h1>
+  <div
+    class="relative min-h-screen overflow-hidden bg-linear-to-br from-[#f9fafb] via-[#f3f0ff] to-[#e9f7ff] text-slate-900 font-['Space_Grotesk','Manrope',system-ui,sans-serif]">
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        class="absolute -left-32 top-10 h-64 w-64 rounded-full bg-linear-to-br from-indigo-200 via-white to-emerald-100 blur-3xl opacity-60" />
+      <div
+        class="absolute -right-12 -bottom-16 h-72 w-72 rounded-full bg-linear-to-tr from-orange-100 via-white to-sky-100 blur-3xl opacity-70" />
+    </div>
 
-    <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes />
+    <main class="relative mx-auto max-w-7xl px-6 py-10 space-y-10">
+      <header class="max-w-4xl space-y-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Nuxt module · editable grid</p>
+        <h1 class="text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl">Editable Table built for flow, not forms.</h1>
+        <p class="text-lg leading-relaxed text-slate-700">
+          Compose spreadsheet-like experiences with real keyboard support, type-aware editors, clipboard integration, and row/column
+          utilities. Every interaction in the table below updates the live data snapshot.
+        </p>
+        <div class="flex flex-wrap gap-3 text-sm font-medium text-slate-800">
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Keyboard-first</span>
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Copy/Paste to Sheets</span>
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Column + row controls</span>
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Tailwind styled</span>
+        </div>
+      </header>
 
-    <pre>
-      {{ rows.length }}
-    </pre>
+      <section class="overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-xl ring-1 ring-black/5 backdrop-blur">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Live demo</p>
+            <p class="text-lg font-semibold text-slate-900">Product teams roster</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow-md"
+              @click="resetRows">
+              Reset data
+            </button>
+            <button
+              type="button"
+              class="rounded-full bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-px hover:shadow-lg"
+              @click="addSampleRow">
+              Add sample row
+            </button>
+          </div>
+        </div>
 
-    <pre style="margin-top: 24px"
-      >{{ rows }}
-    </pre>
+        <div class="border-b border-slate-200/70 bg-linear-to-b from-white to-slate-50/60 px-4 pb-4 pt-3">
+          <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes />
+        </div>
+
+        <div class="grid gap-3 px-5 py-4 sm:grid-cols-2">
+          <div class="rounded-2xl bg-slate-900 text-white shadow-lg ring-1 ring-black/10">
+            <div class="px-4 py-3 text-xs uppercase tracking-wide text-white/70">Active teammates</div>
+            <div class="px-4 pb-4 text-3xl font-semibold">{{ activeCount }} / {{ rows.length }}</div>
+          </div>
+          <div class="rounded-2xl bg-white/90 shadow-inner ring-1 ring-slate-200">
+            <div class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Open tickets</div>
+            <div class="flex items-baseline gap-2 px-4 pb-4">
+              <span class="text-3xl font-semibold text-slate-900">{{ totalTickets }}</span>
+              <span class="text-sm text-slate-500">avg {{ avgTickets }}</span>
+            </div>
+          </div>
+          <div class="rounded-2xl bg-white/90 shadow-inner ring-1 ring-slate-200 sm:col-span-2">
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-xs uppercase tracking-wide text-slate-500">Most recent start date</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Sort by Joined →</span>
+            </div>
+            <div class="px-4 pb-4 text-lg font-semibold text-slate-900">{{ formatDate(newestJoin ?? "") }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <div class="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-lg ring-1 ring-black/5 backdrop-blur">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ways to explore</p>
+              <h3 class="text-lg font-semibold text-slate-900">Try these interactions in the table</h3>
+            </div>
+            <span class="rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">Hands-on</span>
+          </div>
+          <ul class="mt-4 space-y-3 text-slate-700">
+            <li v-for="tip in tips" :key="tip" class="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200/80">
+              <span class="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-slate-900" />
+              <span class="leading-relaxed">{{ tip }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="grid gap-6">
+          <div class="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-lg ring-1 ring-black/5 backdrop-blur">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Keyboard palette</p>
+                <h3 class="text-lg font-semibold text-slate-900">Stay in flow without the mouse</h3>
+              </div>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700"
+                >Power user</span
+              >
+            </div>
+            <div class="mt-4 space-y-2">
+              <div
+                v-for="entry in hotkeys"
+                :key="entry.combo"
+                class="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200/80">
+                <span class="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">{{
+                  entry.combo
+                }}</span>
+                <span class="leading-relaxed text-slate-700">{{ entry.note }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/70 bg-slate-900 text-slate-100 shadow-xl ring-1 ring-black/10 backdrop-blur">
+            <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Data snapshot</p>
+                <h3 class="text-lg font-semibold">Rows sync live as you edit</h3>
+              </div>
+              <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                {{ rows.length }} rows
+              </span>
+            </div>
+            <pre class="max-h-56 overflow-auto px-5 py-4 text-xs leading-relaxed text-emerald-100/90"
+              >{{ rowsPreview }}
+            </pre>
+            <p class="px-5 pb-5 text-xs text-white/70">Copy/paste or undo/redo above and watch this snapshot update instantly.</p>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 </template>
+
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Manrope:wght@500;600&display=swap");
+</style>
