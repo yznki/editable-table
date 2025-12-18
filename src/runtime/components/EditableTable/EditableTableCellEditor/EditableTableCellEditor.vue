@@ -2,13 +2,15 @@
   import { nextTick, onMounted, ref, watch } from "vue";
   import { ColumnType } from "@models/column";
   import { cva } from "class-variance-authority";
+  import EditableTableSelectCell from "./EditableTableSelectCell.vue";
 
   export interface EditableTableCellEditorProps {
     type?: ColumnType;
     isEditable?: boolean;
+    selectOptions?: string[];
   }
 
-  const props = withDefaults(defineProps<EditableTableCellEditorProps>(), { type: "text", isEditable: false });
+  const props = withDefaults(defineProps<EditableTableCellEditorProps>(), { type: "text", isEditable: false, selectOptions: () => [] });
 
   const emit = defineEmits<{
     (event: "blur", e: FocusEvent): void;
@@ -65,9 +67,15 @@
 
 <template>
   <div ref="editorRoot" class="w-full h-full" @focusout="emit('blur', $event)">
-    <span v-if="!isEditable" :class="contentClass({ editable: false })">
-      {{ value }}
-    </span>
+    <template v-if="type === 'select'">
+      <EditableTableSelectCell v-model="value" :options="selectOptions" :is-editable="isEditable" />
+    </template>
+
+    <template v-else-if="!isEditable">
+      <span :class="contentClass({ editable: false })">
+        {{ value }}
+      </span>
+    </template>
 
     <div v-else-if="type === 'custom'" :class="contentClass({ editable: true })">
       <slot />

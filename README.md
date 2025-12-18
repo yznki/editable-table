@@ -15,6 +15,7 @@ Rich, keyboard-friendly spreadsheet interactions packaged as a Nuxt module. Drop
 - Inline editors for text, number, boolean (checkbox), date, and custom cells.
 - Spreadsheet-grade keyboard support: arrows, Tab/Shift+Tab, Enter, Esc, Shift+arrows for range selection, Cmd/Ctrl+Z/Y for undo/redo.
 - Copy/paste ranges to and from spreadsheets (tab/newline delimited).
+- Select columns that remember any value you type, show pills in display mode, and offer a scrollable, keyboard-friendly dropdown with filtering and arrow navigation.
 - Column tools: reorder via drag, type switching (optional), and sort asc/desc.
 - Row tools: add rows, insert above/below, move up/down, delete.
 - Numeric rollups for selected number columns (sum/avg/min/max/count).
@@ -105,7 +106,8 @@ Type handling:
 - `number`: coerces numeric-looking strings to numbers.
 - `boolean`: checkbox editor; accepts common truthy/falsey strings on paste.
 - `date`: ISO `YYYY-MM-DD` strings in the UI; accepts `Date` or parsable strings.
-- `select`/`custom`: rendered as text input by default (slotting coming later).
+- `select`: values typed in any cell become reusable options; display mode shows colored pills; dropdown is scrollable, filterable, arrow-navigable, and closes on Enter selection.
+- `custom`: rendered as text input by default (slotting coming later).
 
 ### Keyboard & mouse reference
 

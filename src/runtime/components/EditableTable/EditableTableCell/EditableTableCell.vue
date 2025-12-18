@@ -21,6 +21,7 @@
     rowId: string | number;
     columnKey: TKey;
     columnType?: ColumnType;
+    selectOptions?: string[];
 
     rowIndex: number;
     columnIndex: number;
@@ -309,6 +310,12 @@
     :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected }), !isActive ? 'select-none' : '']"
     @mousedown="onMouseDown"
     @dblclick="onDblClick">
-    <EditableTableCellEditor v-model="value" :type="columnType" @blur="onBlur" class="w-full" :is-editable="isActive" />
+    <EditableTableCellEditor
+      v-model="value"
+      :type="columnType"
+      :select-options="selectOptions"
+      @blur="onBlur"
+      class="w-full"
+      :is-editable="isActive" />
   </div>
 </template>

@@ -26,7 +26,7 @@
   const columns = ref<EditableTableColumn<MemberRow>[]>([
     { rowKey: "name", title: "Name", type: "text" },
     { rowKey: "role", title: "Role", type: "text" },
-    { rowKey: "squad", title: "Squad", type: "text" },
+    { rowKey: "squad", title: "Squad", type: "select" },
     { rowKey: "tickets", title: "Open tickets", type: "number" },
     { rowKey: "active", title: "Active", type: "boolean" },
     { rowKey: "joinedAt", title: "Joined", type: "date" }
@@ -60,7 +60,8 @@
     "Click a header to sort; toggle type switching on to see coercion in action.",
     "Right-click the row number for quick insert, move, or delete.",
     "Use the Add row button to append a row then start typing immediately.",
-    "Select any number columns to see live sums/averages in the footer."
+    "Select any number columns to see live sums/averages in the footer.",
+    "Double-click Squad to see the select dropdown; type to add a new squad, use arrows to navigate, Enter to commit."
   ];
 
   function cloneRows(source: MemberRow[]) {
