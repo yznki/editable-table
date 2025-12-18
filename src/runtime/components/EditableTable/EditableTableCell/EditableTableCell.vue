@@ -226,7 +226,10 @@
   });
 
   watch(keys.tab, (pressed) => {
-    if (!shouldHandleNavigationKey("Tab", pressed, isFocused.value, isActive.value)) return;
+    if (!shouldHandleNavigationKey("Tab", pressed, isFocused.value, isActive.value, { allowWhileEditing: true })) return;
+    if (isActive.value) {
+      stopEditing();
+    }
     move(keys.shift.value ? "left" : "right", props.rowCount, props.columnCount);
   });
 

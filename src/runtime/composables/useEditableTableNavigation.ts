@@ -131,13 +131,20 @@ export function useEditableTableNavigation() {
     }
   }
 
-  function shouldHandleNavigationKey(key: NavigationKey, pressed: boolean, canHandle: boolean, isEditing: boolean) {
+  function shouldHandleNavigationKey(
+    key: NavigationKey,
+    pressed: boolean,
+    canHandle: boolean,
+    isEditing: boolean,
+    options?: { allowWhileEditing?: boolean }
+  ) {
     if (!pressed) {
       handledNavigationKeys.delete(key);
       return false;
     }
 
-    if (!canHandle || isEditing) return false;
+    if (!canHandle) return false;
+    if (isEditing && !options?.allowWhileEditing) return false;
     if (handledNavigationKeys.has(key)) return false;
 
     handledNavigationKeys.add(key);

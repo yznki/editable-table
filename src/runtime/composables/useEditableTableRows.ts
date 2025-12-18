@@ -121,6 +121,12 @@ export function useEditableTableRows<TRow extends Record<string, any> = Record<s
     return Math.min(targetIndex, nextRows.length - 1);
   }
 
+  function appendRow() {
+    const nextRows = [...options.rows.value, createEmptyRow()];
+    applyRowChange(`Add row ${nextRows.length}`, nextRows);
+    return nextRows.length - 1;
+  }
+
   return {
     isRowMenuVisible,
     rowMenuIndex,
@@ -131,6 +137,7 @@ export function useEditableTableRows<TRow extends Record<string, any> = Record<s
     insertRowBelow,
     moveRowUp,
     moveRowDown,
-    deleteRow
+    deleteRow,
+    appendRow
   };
 }

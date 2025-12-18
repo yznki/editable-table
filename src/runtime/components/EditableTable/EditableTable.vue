@@ -15,6 +15,7 @@
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+  import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -64,7 +65,8 @@
     insertRowBelow,
     moveRowUp,
     moveRowDown,
-    deleteRow
+    deleteRow,
+    appendRow
   } = useEditableTableRows<TRow>({
     rows,
     columns,
@@ -693,12 +695,21 @@
     focusRow(nextIndex);
   }
 
+  function handleAppendRow() {
+    const newRowIndex = appendRow();
+    if (newRowIndex === null) return;
+    focusAndEditFirstCell(newRowIndex);
+  }
+
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
   const headerRow = cva("relative grid border-b border-gray-300 bg-gray-50 font-medium");
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const bodyWrapper = cva("relative flex-1 overflow-auto");
+  const addRowButton = cva(
+    "col-span-full flex items-center justify-center gap-1 bg-gray-50 py-2 text-sm text-gray-700 transition hover:bg-gray-100 focus:outline-none focus:ring-0"
+  );
 </script>
 
 <template>
@@ -759,6 +770,13 @@
           @cell-select="onCellSelect"
           @cell-focus="onCellFocus"
           @cell-commit="onCellCommit" />
+      </div>
+
+      <div v-if="columns.length" class="grid" :style="gridStyle">
+        <button type="button" :class="addRowButton()" style="grid-column: 1 / -1" @click="handleAppendRow">
+          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-600" size="xs" />
+          <span class="text-xs">Add row</span>
+        </button>
       </div>
     </div>
 
