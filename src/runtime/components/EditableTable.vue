@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { computed, ref, watch } from "vue";
+  import { computed, nextTick, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
   import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
@@ -613,9 +613,11 @@
     setActive({ rowIndex: safeRowIndex, columnIndex: safeColumnIndex });
   }
 
-  function appendRowAndFocus(columnIndex = 0, shouldStartEditing = false) {
+  async function appendRowAndFocus(columnIndex = 0, shouldStartEditing = false) {
     const newRowIndex = appendRow();
     if (newRowIndex === null) return;
+
+    await nextTick();
 
     focusCell(newRowIndex, columnIndex);
 
