@@ -648,8 +648,8 @@
     appendRowAndFocus(0, true);
   }
 
-  function handleAppendRowFromCell(columnIndex: number) {
-    appendRowAndFocus(columnIndex, false);
+  function handleAppendRowFromCell(columnIndex: number, shouldStartEditing: boolean) {
+    appendRowAndFocus(columnIndex, shouldStartEditing);
   }
 
   function handleInsertRow(direction: "above" | "below") {
@@ -685,9 +685,9 @@
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
-  const addRowRow = cva("grid border-b border-gray-200 bg-gray-50/50");
+  const addRowRow = cva("grid bg-gray-50/50");
   const addRowButton = cva(
-    "flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-gray-300 bg-white text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-600 active:bg-gray-50"
+    "flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-gray-300 bg-white text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-600 active:bg-gray-50"
   );
   const bodyWrapper = cva("relative flex-1 overflow-auto");
 </script>
@@ -750,11 +750,11 @@
           @cell-select="onCellSelect"
           @cell-focus="onCellFocus"
           @cell-commit="onCellCommit"
-          @request-append-row="handleAppendRowFromCell($event.columnIndex)" />
+          @request-append-row="handleAppendRowFromCell($event.columnIndex, $event.startEditing)" />
       </div>
 
       <div :class="addRowRow()" :style="gridStyle">
-        <div class="col-span-full flex items-center justify-center py-3">
+        <div class="col-span-full flex items-center justify-center py-2">
           <button type="button" :class="addRowButton()" @click="handleAddRowClick">
             <FontAwesomeIcon :icon="faPlus" class="h-4 w-4" />
             <span class="sr-only">Add row</span>
