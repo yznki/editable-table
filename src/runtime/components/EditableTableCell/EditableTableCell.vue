@@ -40,6 +40,7 @@
       event: "cell-commit",
       payload: { rowIndex: number; columnIndex: number; rowId: string | number; columnKey: string; previousValue: any; nextValue: any }
     ): void;
+    (event: "enter-navigation", payload: { rowIndex: number; columnIndex: number; columnKey: string; isLastRow: boolean }): void;
   }>();
 
   const value = defineModel<TRow[TKey]>();
@@ -203,8 +204,19 @@
       return;
     }
 
+    const isLastRow = props.rowIndex === props.rowCount - 1;
+
     stopEditing();
-    move("down", props.rowCount, props.columnCount);
+    emit("enter-navigation", {
+      rowIndex: props.rowIndex,
+      columnIndex: props.columnIndex,
+      columnKey: String(props.columnKey),
+      isLastRow
+    });
+
+    if (!isLastRow) {
+      move("down", props.rowCount, props.columnCount);
+    }
   });
 
   watch(isFocused, (focused) => {

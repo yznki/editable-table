@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { computed, ref, watch } from "vue";
+  import { computed, nextTick, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
   import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
@@ -8,10 +8,12 @@
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
   import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
   import { useEditableTableHistory } from "@composables/useEditableTableHistory";
+  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+  import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -43,12 +45,74 @@
 
   const { pushEntry: pushHistoryEntry, undo, redo } = useEditableTableHistory();
   const { clearActive, activePosition, setActive, handleTableKeyDown, disableScrollOnNextFocus } = useEditableTableNavigation();
+  const { startEditing } = useEditableTableEditing();
 
   onClickOutside(tableElement, () => {
     clearActive();
     selectionAnchor.value = null;
     selectionEnd.value = null;
   });
+
+  function getDefaultValueForColumn(column: EditableTableColumn<TRow>) {
+    switch (column.type) {
+      case "number":
+        return null as TRow[keyof TRow];
+      case "boolean":
+        return false as TRow[keyof TRow];
+      default:
+        return "" as TRow[keyof TRow];
+    }
+  }
+
+  function createEmptyRow(): TRow {
+    const nextRow = {} as TRow;
+
+    columns.value.forEach((column) => {
+      (nextRow as any)[column.rowKey] = getDefaultValueForColumn(column);
+    });
+
+    const idKey = props.idPropertyName as keyof TRow;
+    const hasIds = rows.value.some((currentRow) => currentRow?.[idKey] !== undefined && currentRow?.[idKey] !== null);
+
+    if (hasIds && !(idKey in nextRow)) {
+      const numericIds = rows.value.map((currentRow) => currentRow?.[idKey]).filter((id) => typeof id === "number" && Number.isFinite(id));
+
+      if (numericIds.length) {
+        (nextRow as any)[idKey] = Math.max(...numericIds) + 1;
+      } else {
+        (nextRow as any)[idKey] = rows.value.length + 1;
+      }
+    }
+
+    return nextRow;
+  }
+
+  function addRow(afterRowIndex?: number) {
+    const newRow = createEmptyRow();
+    const insertionIndex = typeof afterRowIndex === "number" ? Math.min(afterRowIndex + 1, rows.value.length) : rows.value.length;
+    const nextRows = [...rows.value];
+    nextRows.splice(insertionIndex, 0, newRow);
+    rows.value = nextRows;
+    return insertionIndex;
+  }
+
+  async function focusAndEditCell(rowIndex: number, columnIndex: number) {
+    await nextTick();
+    const row = rows.value[rowIndex];
+    const column = columns.value[columnIndex];
+    if (!row || !column) return;
+
+    const position = { rowIndex, columnIndex };
+    setActive(position);
+    selectionAnchor.value = position;
+    selectionEnd.value = position;
+    preserveSelectionOnNextFocus.value = false;
+
+    startEditing({
+      rowId: getRowId(row, rowIndex),
+      columnKey: String(column.rowKey)
+    });
+  }
 
   const gridStyle = computed(() => ({
     gridTemplateColumns: `${indexColumnWidth} repeat(${columns.value.length}, minmax(0, 1fr))`
@@ -338,6 +402,33 @@
     });
   }
 
+  async function onAddRowClick(targetColumnIndex = 0) {
+    const columnIndex = Math.min(targetColumnIndex, Math.max(0, columns.value.length - 1));
+    const newRowIndex = addRow(rows.value.length - 1);
+    await nextTick();
+    bodyWrapperElement.value?.scrollTo({ top: bodyWrapperElement.value.scrollHeight });
+    if (columns.value.length) {
+      focusAndEditCell(newRowIndex, columnIndex);
+    }
+  }
+
+  function onEnterNavigation(payload: { rowIndex: number; columnIndex: number; columnKey: string; isLastRow: boolean }) {
+    const targetRowIndex = payload.rowIndex + 1;
+
+    if (payload.isLastRow) {
+      const newRowIndex = addRow(payload.rowIndex);
+      nextTick(() => {
+        bodyWrapperElement.value?.scrollTo({ top: bodyWrapperElement.value.scrollHeight });
+        focusAndEditCell(newRowIndex, payload.columnIndex);
+      });
+      return;
+    }
+
+    nextTick(() => {
+      focusAndEditCell(targetRowIndex, payload.columnIndex);
+    });
+  }
+
   /**
    * Opens the column menu for the specified column index.
    * @param columnIndex - The index of the column to open the menu for.
@@ -563,6 +654,11 @@
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const bodyWrapper = cva("relative flex-1 overflow-auto");
+  const addRowRow = cva("grid border-b border-gray-200 bg-gray-100 text-gray-600");
+  const addRowButton = cva(
+    "col-span-full flex items-center justify-center gap-2 py-2 text-sm font-medium w-full cursor-pointer select-none transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+  );
+  const addRowIcon = cva("text-gray-500");
 </script>
 
 <template>
@@ -620,7 +716,21 @@
           :class="draggingColumnIndex === columnIndex ? draggingColumnBodyClass : ''"
           @cell-select="onCellSelect"
           @cell-focus="onCellFocus"
-          @cell-commit="onCellCommit" />
+          @cell-commit="onCellCommit"
+          @enter-navigation="onEnterNavigation" />
+      </div>
+
+      <div :class="addRowRow()" :style="gridStyle">
+        <button
+          type="button"
+          :class="addRowButton()"
+          title="Add new row"
+          aria-label="Add new row"
+          @click="onAddRowClick()"
+          @keydown.enter.prevent="onAddRowClick()"
+          @keydown.space.prevent="onAddRowClick()">
+          <FontAwesomeIcon :icon="faPlus" :class="addRowIcon()" />
+        </button>
       </div>
     </div>
 
