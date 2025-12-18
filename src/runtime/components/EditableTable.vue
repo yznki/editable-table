@@ -72,13 +72,15 @@
     });
 
     const idKey = props.idPropertyName as keyof TRow;
-    if (!(idKey in nextRow)) {
-      const numericIds = rows.value
-        .map((currentRow) => currentRow?.[idKey])
-        .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+    const hasIds = rows.value.some((currentRow) => currentRow?.[idKey] !== undefined && currentRow?.[idKey] !== null);
+
+    if (hasIds && !(idKey in nextRow)) {
+      const numericIds = rows.value.map((currentRow) => currentRow?.[idKey]).filter((id) => typeof id === "number" && Number.isFinite(id));
 
       if (numericIds.length) {
         (nextRow as any)[idKey] = Math.max(...numericIds) + 1;
+      } else {
+        (nextRow as any)[idKey] = rows.value.length + 1;
       }
     }
 
