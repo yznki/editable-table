@@ -74,11 +74,15 @@
     pushHistoryEntry
   });
 
-  onClickOutside(tableElement, () => {
-    clearActive();
-    selectionAnchor.value = null;
-    selectionEnd.value = null;
-  });
+  onClickOutside(
+    tableElement,
+    () => {
+      clearActive();
+      selectionAnchor.value = null;
+      selectionEnd.value = null;
+    },
+    { ignore: ["[data-context-menu]"] }
+  );
 
   const gridStyle = computed(() => ({
     gridTemplateColumns: `${indexColumnWidth} repeat(${columns.value.length}, minmax(0, 1fr))`

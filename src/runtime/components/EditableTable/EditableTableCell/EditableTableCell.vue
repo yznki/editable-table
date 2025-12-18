@@ -155,8 +155,16 @@
     });
   }
 
+  function focusCell() {
+    cellElement.value?.focus({ preventScroll: true });
+  }
+
   watch(isFocused, (focused) => {
     if (!focused) return;
+
+    if (!isActive.value) {
+      focusCell();
+    }
 
     if (!shouldScrollOnNextFocus.value) {
       allowScrollOnNextFocus();
@@ -166,6 +174,10 @@
   });
 
   watch(isActive, (active) => {
+    if (!active && isFocused.value) {
+      focusCell();
+    }
+
     if (active) {
       originalValue.value = value.value ?? null;
       hasOriginalValue.value = true;
