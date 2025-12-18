@@ -71,6 +71,12 @@ export function useEditableTableRows<TRow extends Record<string, any> = Record<s
     });
   }
 
+  function appendRow() {
+    const nextRows = [...options.rows.value, createEmptyRow()];
+    applyRowChange(`Add row ${nextRows.length}`, nextRows);
+    return nextRows.length - 1;
+  }
+
   function insertRow(targetIndex: number, position: "above" | "below") {
     const insertionIndex = position === "above" ? targetIndex : targetIndex + 1;
     if (insertionIndex < 0 || insertionIndex > options.rows.value.length) return null;
@@ -131,6 +137,7 @@ export function useEditableTableRows<TRow extends Record<string, any> = Record<s
     insertRowBelow,
     moveRowUp,
     moveRowDown,
-    deleteRow
+    deleteRow,
+    appendRow
   };
 }
