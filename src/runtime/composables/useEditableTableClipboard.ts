@@ -32,12 +32,14 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
     rowIndex: number,
     columnIndex: number,
     rawValue: string
-  ): {
-    rowId: string | number;
-    columnKey: keyof TRow | string;
-    previousValue: TRow[keyof TRow];
-    nextValue: TRow[keyof TRow];
-  } | null {
+  ):
+    | {
+        rowId: string | number;
+        columnKey: keyof TRow | string;
+        previousValue: TRow[keyof TRow];
+        nextValue: TRow[keyof TRow];
+      }
+    | undefined {
     const column = columns.value[columnIndex];
     if (!column) return;
 
@@ -56,7 +58,7 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
     const previousValue = rows.value[rowIndex][key];
     const nextValue = parsedValue as TRow[keyof TRow];
 
-    if (Object.is(previousValue, nextValue)) return null;
+    if (Object.is(previousValue, nextValue)) return undefined;
 
     rows.value[rowIndex][key] = nextValue;
 

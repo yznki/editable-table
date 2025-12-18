@@ -98,30 +98,6 @@
     : "transition-opacity duration-150 ease-out"
   );
 
-  const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
-    rows,
-    columns,
-    selectionRange,
-    selectedRowIndexes,
-    selectedColumnIndexes,
-    getRowId,
-    onCellsChanged(changes) {
-      recordCellChanges(changes, "Paste values");
-    }
-  });
-
-  const {
-    dragPreviewStyle,
-    draggingColumn,
-    draggingColumnIndex,
-    isDragging,
-    onPointerDown: onColumnPointerDown
-  } = useEditableTableColumnDrag<TRow>({
-    columns,
-    tableElement,
-    headerRowElement
-  });
-
   /**
    * Gets the unique identifier for a given row.
    * @param row - The row object.
@@ -527,6 +503,30 @@
 
     rows.value = [...rows.value].sort((rowA, rowB) => compareValuesForSort(rowA?.[columnKey], rowB?.[columnKey], columnType, direction));
   }
+
+  const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
+    rows,
+    columns,
+    selectionRange,
+    selectedRowIndexes,
+    selectedColumnIndexes,
+    getRowId,
+    onCellsChanged(changes) {
+      recordCellChanges(changes, "Paste values");
+    }
+  });
+
+  const {
+    dragPreviewStyle,
+    draggingColumn,
+    draggingColumnIndex,
+    isDragging,
+    onPointerDown: onColumnPointerDown
+  } = useEditableTableColumnDrag<TRow>({
+    columns,
+    tableElement,
+    headerRowElement
+  });
 
   watch(
     columns,

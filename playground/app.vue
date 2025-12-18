@@ -64,7 +64,7 @@
   <div style="padding: 24px">
     <h1>Editable Table Playground</h1>
 
-    <EditableTable v-model="rows" v-model:columns="columns" id-property-name="id" />
+    <EditableTable v-model="rows" v-model:columns="columns" id-property-name="id" allow-column-type-changes />
 
     <!-- <pre>
       {{ rows.length }}
