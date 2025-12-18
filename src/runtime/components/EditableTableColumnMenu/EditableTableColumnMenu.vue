@@ -19,6 +19,7 @@
     columnsLength: number;
     position: { left: number; top: number };
     availableTypes?: ColumnTypeOption[];
+    canChangeType?: boolean;
   }
 
   const props = defineProps<EditableTableColumnMenuProps>();
@@ -44,6 +45,7 @@
   const typeSubmenuAlignment = ref<"start" | "end">("start");
   const typeButtonElement = ref<HTMLElement | null>(null);
   const typeSubmenuCloseTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+  const isTypeChangeAllowed = computed(() => props.canChangeType ?? true);
 
   const optionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 transition-colors text-left", {
     variants: {
@@ -181,41 +183,43 @@
         {{ column.title }}
       </div>
 
-      <button
-        ref="typeButtonElement"
-        type="button"
-        :class="optionClass({ active: isTypeSubmenuOpen })"
-        @mouseenter="openTypeSubmenu"
-        @mouseleave="scheduleCloseTypeSubmenu">
-        <div class="flex items-center gap-2">
-          <FontAwesomeIcon v-if="currentTypeOption.icon" :icon="currentTypeOption.icon" class="h-4 w-4 text-gray-600" />
-          <span class="font-medium">Type</span>
-        </div>
-      </button>
+      <template v-if="isTypeChangeAllowed">
+        <button
+          ref="typeButtonElement"
+          type="button"
+          :class="optionClass({ active: isTypeSubmenuOpen })"
+          @mouseenter="openTypeSubmenu"
+          @mouseleave="scheduleCloseTypeSubmenu">
+          <div class="flex items-center gap-2">
+            <FontAwesomeIcon v-if="currentTypeOption.icon" :icon="currentTypeOption.icon" class="h-4 w-4 text-gray-600" />
+            <span class="font-medium">Type</span>
+          </div>
+        </button>
 
-      <ContextMenu
-        v-model="isTypeSubmenuOpen"
-        :position="typeSubmenuPosition"
-        :alignment="typeSubmenuAlignment"
-        vertical-alignment="none"
-        transition="fade"
-        @mouseenter="clearTypeSubmenuCloseTimeout"
-        @mouseleave="scheduleCloseTypeSubmenu">
-        <div class="space-y-1">
-          <button
-            v-for="option in typeOptions"
-            :key="option.value"
-            type="button"
-            :class="typeOptionClass({ active: option.value === currentTypeOption.value })"
-            @click="selectType(option.value)">
-            <div class="flex items-center gap-2">
-              <FontAwesomeIcon v-if="option.icon" :icon="option.icon" class="h-4 w-4" />
-              <span>{{ option.label }}</span>
-            </div>
-            <span v-if="option.value === currentTypeOption.value" class="text-xs text-gray-500">Current</span>
-          </button>
-        </div>
-      </ContextMenu>
+        <ContextMenu
+          v-model="isTypeSubmenuOpen"
+          :position="typeSubmenuPosition"
+          :alignment="typeSubmenuAlignment"
+          vertical-alignment="none"
+          transition="fade"
+          @mouseenter="clearTypeSubmenuCloseTimeout"
+          @mouseleave="scheduleCloseTypeSubmenu">
+          <div class="space-y-1">
+            <button
+              v-for="option in typeOptions"
+              :key="option.value"
+              type="button"
+              :class="typeOptionClass({ active: option.value === currentTypeOption.value })"
+              @click="selectType(option.value)">
+              <div class="flex items-center gap-2">
+                <FontAwesomeIcon v-if="option.icon" :icon="option.icon" class="h-4 w-4" />
+                <span>{{ option.label }}</span>
+              </div>
+              <span v-if="option.value === currentTypeOption.value" class="text-xs text-gray-500">Current</span>
+            </button>
+          </div>
+        </ContextMenu>
+      </template>
 
       <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
         <button type="button" :class="actionClass()" @click="sort('asc')">Sort ascending</button>

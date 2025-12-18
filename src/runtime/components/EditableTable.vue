@@ -7,14 +7,21 @@
   import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
   import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
+  import { useEditableTableHistory } from "@composables/useEditableTableHistory";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
+  type CellChange = {
+    rowId: string | number;
+    columnKey: keyof TRow | string;
+    previousValue: TRow[keyof TRow];
+    nextValue: TRow[keyof TRow];
+  };
 
-  const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id" });
+  const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id", allowColumnTypeChanges: false });
 
   const rows = defineModel<TRow[]>({ default: () => [] });
   const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [] });
@@ -34,6 +41,7 @@
   const isColumnMenuVisible = ref(false);
   const getColumnTypeOption = (type?: ColumnType) => resolveColumnTypeOption(type, defaultColumnTypeOptions);
 
+  const { pushEntry: pushHistoryEntry, undo, redo } = useEditableTableHistory();
   const { clearActive, activePosition, setActive, handleTableKeyDown, disableScrollOnNextFocus } = useEditableTableNavigation();
 
   onClickOutside(tableElement, () => {
@@ -90,26 +98,6 @@
     : "transition-opacity duration-150 ease-out"
   );
 
-  const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
-    rows,
-    columns,
-    selectionRange,
-    selectedRowIndexes,
-    selectedColumnIndexes
-  });
-
-  const {
-    dragPreviewStyle,
-    draggingColumn,
-    draggingColumnIndex,
-    isDragging,
-    onPointerDown: onColumnPointerDown
-  } = useEditableTableColumnDrag<TRow>({
-    columns,
-    tableElement,
-    headerRowElement
-  });
-
   /**
    * Gets the unique identifier for a given row.
    * @param row - The row object.
@@ -119,6 +107,117 @@
     const rowId = row[props.idPropertyName as keyof TRow];
     return rowId ?? rowIndex;
   };
+
+  function applyCellChanges(changes: CellChange[], direction: "undo" | "redo") {
+    if (!changes.length) return;
+
+    const changesByRow = changes.reduce((accumulator, change) => {
+      const current = accumulator.get(change.rowId) ?? [];
+      current.push(change);
+      accumulator.set(change.rowId, current);
+      return accumulator;
+    }, new Map<CellChange["rowId"], CellChange[]>());
+
+    rows.value = rows.value.map((row, rowIndex) => {
+      const rowId = getRowId(row, rowIndex);
+      const rowChanges = changesByRow.get(rowId);
+      if (!rowChanges?.length) return row;
+
+      const updatedRow = { ...row };
+      rowChanges.forEach((change) => {
+        const value = direction === "undo" ? change.previousValue : change.nextValue;
+        updatedRow[change.columnKey as keyof TRow] = value;
+      });
+
+      return updatedRow;
+    });
+  }
+
+  function recordCellChanges(changes: CellChange[], description: string) {
+    if (!changes.length) return;
+
+    pushHistoryEntry({
+      description,
+      undo() {
+        applyCellChanges(changes, "undo");
+      },
+      redo() {
+        applyCellChanges(changes, "redo");
+      }
+    });
+  }
+
+  function coerceValueForType(value: unknown, type: ColumnType) {
+    if (value === null || value === undefined) return { value, changed: false };
+
+    switch (type) {
+      case "number": {
+        if (value === "") return { value, changed: false };
+        if (typeof value === "number") return { value, changed: false };
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return { value, changed: false };
+        return { value: numericValue, changed: !Object.is(value, numericValue) };
+      }
+      case "boolean": {
+        if (value === "") return { value, changed: false };
+        if (typeof value === "boolean") return { value, changed: false };
+        const normalizedValue = typeof value === "string" ? value.trim().toLowerCase() : value;
+        if (
+          normalizedValue === 1 ||
+          normalizedValue === "1" ||
+          normalizedValue === "true" ||
+          normalizedValue === "yes" ||
+          normalizedValue === "on"
+        ) {
+          return { value: true, changed: !Object.is(value, true) };
+        }
+        if (
+          normalizedValue === 0 ||
+          normalizedValue === "0" ||
+          normalizedValue === "false" ||
+          normalizedValue === "no" ||
+          normalizedValue === "off"
+        ) {
+          return { value: false, changed: !Object.is(value, false) };
+        }
+        return { value, changed: false };
+      }
+      case "date": {
+        if (value === "") return { value, changed: false };
+        const existingDate = value instanceof Date ? value : new Date(value as any);
+        if (Number.isNaN(existingDate.getTime())) return { value, changed: false };
+        const formattedDate = existingDate.toISOString().slice(0, 10);
+        return { value: formattedDate, changed: !Object.is(value, formattedDate) };
+      }
+      case "text":
+      case "select":
+      case "custom":
+      default:
+        return { value, changed: false };
+    }
+  }
+
+  function coerceColumnValues(columnKey: keyof TRow | string, targetType: ColumnType) {
+    const valueChanges: CellChange[] = [];
+
+    rows.value = rows.value.map((row, rowIndex) => {
+      const currentValue = row[columnKey as keyof TRow];
+      const { value: coercedValue, changed } = coerceValueForType(currentValue, targetType);
+      if (!changed) return row;
+
+      const nextRow = { ...row, [columnKey]: coercedValue };
+      valueChanges.push({
+        rowId: getRowId(row, rowIndex),
+        columnKey,
+        previousValue: currentValue,
+        nextValue: coercedValue as TRow[keyof TRow]
+      });
+
+      return nextRow;
+    });
+
+    return valueChanges;
+  }
 
   /**
    * Sets the selection range based on the given position.
@@ -174,11 +273,54 @@
     setSelection({ rowIndex: payload.rowIndex, columnIndex: payload.columnIndex }, false);
   }
 
+  function onCellCommit(payload: {
+    rowIndex: number;
+    columnIndex: number;
+    rowId: string | number;
+    columnKey: string;
+    previousValue: TRow[keyof TRow];
+    nextValue: TRow[keyof TRow];
+  }) {
+    const { rowId, columnKey, previousValue, nextValue } = payload;
+    if (Object.is(previousValue, nextValue)) return;
+
+    recordCellChanges(
+      [
+        {
+          rowId,
+          columnKey,
+          previousValue,
+          nextValue
+        }
+      ],
+      `Edit ${String(columnKey)}`
+    );
+  }
+
+  function isEditableEventTarget(event: KeyboardEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return false;
+
+    const tagName = target.tagName?.toLowerCase();
+    return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
+  }
+
   /**
-   * Handles keydown events for table navigation and selection.
+   * Handles keydown events for table navigation, selection, and history.
    * @param event - The keyboard event.
    */
   function onKeyDown(event: KeyboardEvent) {
+    const isUndoShortcut = (event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === "z";
+    const isRedoShortcut =
+      (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === "y" || (event.shiftKey && event.key.toLowerCase() === "z"));
+
+    if (isUndoShortcut || isRedoShortcut) {
+      if (isEditableEventTarget(event)) return;
+      event.preventDefault();
+      isUndoShortcut ? undo() : redo();
+      return;
+    }
+
     const selectionState: NavigationSelectionState = {
       selectionAnchor,
       selectionEnd,
@@ -230,10 +372,36 @@
    */
   function updateColumnType(type: ColumnType) {
     if (columnMenuIndex.value === null) return;
+    if (!props.allowColumnTypeChanges) return;
 
-    columns.value = columns.value.map((column, index) => {
-      if (index !== columnMenuIndex.value) return column;
-      return { ...column, type };
+    const column = columns.value[columnMenuIndex.value];
+    if (!column) return;
+
+    const previousType = column.type ?? "text";
+    if (previousType === type) return;
+
+    const columnKey = column.rowKey;
+    const columnTitle = column.title;
+
+    const applyType = (nextType: ColumnType) => {
+      columns.value = columns.value.map((currentColumn) =>
+        currentColumn.rowKey === columnKey ? { ...currentColumn, type: nextType } : currentColumn
+      );
+    };
+
+    const valueChanges = coerceColumnValues(columnKey, type);
+    applyType(type);
+
+    pushHistoryEntry({
+      description: `Change "${columnTitle}" type to ${type}`,
+      undo() {
+        applyType(previousType);
+        applyCellChanges(valueChanges, "undo");
+      },
+      redo() {
+        applyType(type);
+        applyCellChanges(valueChanges, "redo");
+      }
     });
   }
 
@@ -337,6 +505,30 @@
     rows.value = [...rows.value].sort((rowA, rowB) => compareValuesForSort(rowA?.[columnKey], rowB?.[columnKey], columnType, direction));
   }
 
+  const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
+    rows,
+    columns,
+    selectionRange,
+    selectedRowIndexes,
+    selectedColumnIndexes,
+    getRowId,
+    onCellsChanged(changes) {
+      recordCellChanges(changes, "Paste values");
+    }
+  });
+
+  const {
+    dragPreviewStyle,
+    draggingColumn,
+    draggingColumnIndex,
+    isDragging,
+    onPointerDown: onColumnPointerDown
+  } = useEditableTableColumnDrag<TRow>({
+    columns,
+    tableElement,
+    headerRowElement
+  });
+
   watch(
     columns,
     () => {
@@ -427,7 +619,8 @@
           :selection-range="selectionRange"
           :class="draggingColumnIndex === columnIndex ? draggingColumnBodyClass : ''"
           @cell-select="onCellSelect"
-          @cell-focus="onCellFocus" />
+          @cell-focus="onCellFocus"
+          @cell-commit="onCellCommit" />
       </div>
     </div>
 
@@ -445,6 +638,7 @@
       :column="activeColumnMenu"
       :column-index="columnMenuIndex"
       :columns-length="columns.length"
+      :can-change-type="props.allowColumnTypeChanges"
       @select-type="updateColumnType"
       @move-left="moveColumn('left')"
       @move-right="moveColumn('right')"
