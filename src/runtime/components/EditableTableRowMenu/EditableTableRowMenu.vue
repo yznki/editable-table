@@ -82,7 +82,7 @@
 </script>
 
 <template>
-  <ContextMenu v-model="isVisible" :position="props.position" alignment="start" vertical-alignment="center">
+  <ContextMenu v-model="isVisible" :position="props.position" alignment="start" vertical-alignment="center" clamp-to-viewport>
     <div class="w-56 space-y-1">
       <div :class="titleClass()">Row {{ props.rowIndex + 1 }}</div>
 

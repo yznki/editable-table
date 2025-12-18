@@ -35,10 +35,23 @@ export function useEditableTableRows<TRow extends Record<string, any> = Record<s
     isRowMenuVisible.value = true;
   }
 
+  function defaultValueForColumn(column: EditableTableColumn<TRow>) {
+    switch (column.type) {
+      case "number":
+        return null;
+      case "boolean":
+        return false;
+      case "date":
+        return "";
+      default:
+        return "";
+    }
+  }
+
   function createEmptyRow(): TRow {
     const nextRow: Record<string, unknown> = {};
     options.columns.value.forEach((column) => {
-      nextRow[column.rowKey as string] = null;
+      nextRow[column.rowKey as string] = defaultValueForColumn(column);
     });
     return nextRow as TRow;
   }

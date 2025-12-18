@@ -8,6 +8,7 @@
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
   import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
   import { useEditableTableHistory } from "@composables/useEditableTableHistory";
+  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
   import { useEditableTableRows } from "@composables/useEditableTableRows";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableRowMenu from "./EditableTableRowMenu/EditableTableRowMenu.vue";
@@ -44,6 +45,7 @@
   const getColumnTypeOption = (type?: ColumnType) => resolveColumnTypeOption(type, defaultColumnTypeOptions);
 
   const { pushEntry: pushHistoryEntry, undo, redo } = useEditableTableHistory();
+  const { startEditing } = useEditableTableEditing();
   const { clearActive, activePosition, setActive, handleTableKeyDown, disableScrollOnNextFocus } = useEditableTableNavigation();
   const {
     isRowMenuVisible,
@@ -605,11 +607,20 @@
     setActive({ rowIndex, columnIndex: 0 });
   }
 
+  function focusAndEditFirstCell(rowIndex: number) {
+    focusRow(rowIndex);
+    const firstColumn = columns.value[0];
+    const targetRow = rows.value[rowIndex];
+    if (!firstColumn || !targetRow) return;
+    const rowId = getRowId(targetRow, rowIndex);
+    startEditing({ rowId, columnKey: String(firstColumn.rowKey) });
+  }
+
   function handleInsertRow(direction: "above" | "below") {
     if (rowMenuIndex.value === null) return;
     const insertionIndex = direction === "above" ? insertRowAbove(rowMenuIndex.value) : insertRowBelow(rowMenuIndex.value);
     if (insertionIndex === null) return;
-    focusRow(insertionIndex);
+    focusAndEditFirstCell(insertionIndex);
     closeRowMenu();
   }
 

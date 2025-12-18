@@ -13,12 +13,14 @@
     alignment?: "center" | "start" | "end";
     verticalAlignment?: "none" | "center";
     transition?: "default" | "fade";
+    clampToViewport?: boolean;
   }
 
   const props = withDefaults(defineProps<ContextMenuProps>(), {
     alignment: "center",
     verticalAlignment: "none",
-    transition: "default"
+    transition: "default",
+    clampToViewport: false
   });
 
   const isVisible = defineModel<boolean>({ default: false });
@@ -37,10 +39,27 @@
 
   const verticalAlignmentClass = computed(() => (props.verticalAlignment === "center" ? "-translate-y-1/2" : ""));
 
-  const menuStyle = computed(() => ({
-    left: `${props.position.left}px`,
-    top: `${props.position.top}px`
-  }));
+  const menuStyle = computed(() => {
+    const left = props.position.left;
+    let top = props.position.top;
+
+    if (props.clampToViewport && typeof window !== "undefined" && menuElement.value) {
+      const viewportHeight = window.innerHeight;
+      const menuHeight = menuElement.value.offsetHeight;
+      const padding = 8;
+
+      const halfHeight = props.verticalAlignment === "center" ? menuHeight / 2 : 0;
+      const desiredTop = top - halfHeight;
+      const clampedTop = Math.min(Math.max(desiredTop, padding), viewportHeight - menuHeight - padding);
+
+      top = clampedTop + halfHeight;
+    }
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`
+    };
+  });
 
   onClickOutside(menuElement, () => {
     if (!isVisible.value) return;
