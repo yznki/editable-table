@@ -45,7 +45,8 @@
   const value = defineModel<TRow[TKey]>();
 
   const { isEditing, startEditing, stopEditing } = useEditableTableEditing();
-  const { activePosition, setActive, move, shouldHandleNavigationKey } = useEditableTableNavigation();
+  const { activePosition, setActive, move, shouldHandleNavigationKey, shouldScrollOnNextFocus, allowScrollOnNextFocus } =
+    useEditableTableNavigation();
 
   const keys = useMagicKeys({
     passive: false,
@@ -156,6 +157,11 @@
 
   watch(isFocused, (focused) => {
     if (!focused) return;
+
+    if (!shouldScrollOnNextFocus.value) {
+      allowScrollOnNextFocus();
+      return;
+    }
     cellElement.value?.scrollIntoView({ block: "nearest", inline: "nearest" });
   });
 
