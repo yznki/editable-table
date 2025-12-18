@@ -8,7 +8,10 @@
   import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
   import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
   import { useEditableTableHistory } from "@composables/useEditableTableHistory";
+  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
+  import { useEditableTableRows } from "@composables/useEditableTableRows";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
+  import EditableTableRowMenu from "./EditableTableRowMenu/EditableTableRowMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -42,7 +45,25 @@
   const getColumnTypeOption = (type?: ColumnType) => resolveColumnTypeOption(type, defaultColumnTypeOptions);
 
   const { pushEntry: pushHistoryEntry, undo, redo } = useEditableTableHistory();
+  const { startEditing } = useEditableTableEditing();
   const { clearActive, activePosition, setActive, handleTableKeyDown, disableScrollOnNextFocus } = useEditableTableNavigation();
+  const {
+    isRowMenuVisible,
+    rowMenuIndex,
+    rowMenuPosition,
+    openRowMenu,
+    closeRowMenu,
+    insertRowAbove,
+    insertRowBelow,
+    moveRowUp,
+    moveRowDown,
+    deleteRow
+  } = useEditableTableRows<TRow>({
+    rows,
+    columns,
+    tableElement,
+    pushHistoryEntry
+  });
 
   onClickOutside(tableElement, () => {
     clearActive();
@@ -240,13 +261,25 @@
    * @param event - The mouse event.
    */
   function onIndexClick(rowIndex: number, event: MouseEvent) {
-    const position: CellPosition = { rowIndex, columnIndex: 0 };
     const shouldExtendSelection = event.shiftKey && selectionAnchor.value !== null;
+    selectRowRange(rowIndex, shouldExtendSelection);
+    clearActive();
+  }
+
+  function onIndexContextMenu(rowIndex: number, event: MouseEvent) {
+    event.preventDefault();
+    const shouldExtendSelection = event.shiftKey && selectionAnchor.value !== null;
+    selectRowRange(rowIndex, shouldExtendSelection);
+    clearActive();
+    openRowMenu(rowIndex, event);
+  }
+
+  function selectRowRange(rowIndex: number, shouldExtendSelection: boolean) {
+    const position: CellPosition = { rowIndex, columnIndex: 0 };
     setSelection({ ...position, columnIndex: 0 }, shouldExtendSelection);
     selectionAnchor.value = selectionAnchor.value ? { ...selectionAnchor.value, columnIndex: 0 } : position;
     selectionEnd.value = { rowIndex, columnIndex: Math.max(0, columns.value.length - 1) };
     preserveSelectionOnNextFocus.value = shouldExtendSelection;
-    clearActive();
   }
 
   /**
@@ -558,6 +591,59 @@
     }
   });
 
+  watch(
+    () => rows.value.length,
+    () => {
+      if (rowMenuIndex.value !== null && rowMenuIndex.value >= rows.value.length) {
+        closeRowMenu();
+      }
+    }
+  );
+
+  function focusRow(rowIndex: number) {
+    if (rowIndex < 0 || rowIndex >= rows.value.length) return;
+    selectRowRange(rowIndex, false);
+    preserveSelectionOnNextFocus.value = false;
+    setActive({ rowIndex, columnIndex: 0 });
+  }
+
+  function focusAndEditFirstCell(rowIndex: number) {
+    focusRow(rowIndex);
+    const firstColumn = columns.value[0];
+    const targetRow = rows.value[rowIndex];
+    if (!firstColumn || !targetRow) return;
+    const rowId = getRowId(targetRow, rowIndex);
+    startEditing({ rowId, columnKey: String(firstColumn.rowKey) });
+  }
+
+  function handleInsertRow(direction: "above" | "below") {
+    if (rowMenuIndex.value === null) return;
+    const insertionIndex = direction === "above" ? insertRowAbove(rowMenuIndex.value) : insertRowBelow(rowMenuIndex.value);
+    if (insertionIndex === null) return;
+    focusAndEditFirstCell(insertionIndex);
+    closeRowMenu();
+  }
+
+  function handleMoveRow(direction: "up" | "down") {
+    if (rowMenuIndex.value === null) return;
+    const nextIndex = direction === "up" ? moveRowUp(rowMenuIndex.value) : moveRowDown(rowMenuIndex.value);
+    if (nextIndex === null) return;
+    focusRow(nextIndex);
+    closeRowMenu();
+  }
+
+  function handleDeleteRow() {
+    if (rowMenuIndex.value === null) return;
+    const nextIndex = deleteRow(rowMenuIndex.value);
+    closeRowMenu();
+    if (nextIndex === null) {
+      selectionAnchor.value = null;
+      selectionEnd.value = null;
+      return;
+    }
+    focusRow(nextIndex);
+  }
+
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
   const headerRow = cva("relative grid border-b border-gray-300 bg-gray-50 font-medium");
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
@@ -605,7 +691,9 @@
 
     <div :class="bodyWrapper()" ref="bodyWrapperElement">
       <div v-for="(row, rowIndex) in rows" :key="String(getRowId(row, rowIndex))" :class="bodyRow()" :style="gridStyle">
-        <div :class="indexCell()" @click="onIndexClick(rowIndex, $event)">{{ rowIndex + 1 }}</div>
+        <div :class="indexCell()" @click="onIndexClick(rowIndex, $event)" @contextmenu="onIndexContextMenu(rowIndex, $event)">
+          {{ rowIndex + 1 }}
+        </div>
         <EditableTableCell
           v-for="(column, columnIndex) in columns"
           :key="String(column.rowKey)"
@@ -631,6 +719,18 @@
       :selection-range="selectionRange"
       :selected-row-indexes="selectedRowIndexes"
       :selected-column-indexes="selectedColumnIndexes" />
+
+    <EditableTableRowMenu
+      v-if="rowMenuIndex !== null && rowMenuPosition"
+      v-model="isRowMenuVisible"
+      :position="rowMenuPosition"
+      :row-index="rowMenuIndex"
+      :rows-length="rows.length"
+      @insert-above="handleInsertRow('above')"
+      @insert-below="handleInsertRow('below')"
+      @move-up="handleMoveRow('up')"
+      @move-down="handleMoveRow('down')"
+      @delete-row="handleDeleteRow" />
 
     <EditableTableColumnMenu
       v-if="columnMenuIndex !== null && columnMenuPosition && activeColumnMenu"
