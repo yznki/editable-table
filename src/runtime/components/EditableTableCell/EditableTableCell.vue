@@ -36,6 +36,10 @@
   const emit = defineEmits<{
     (event: "cell-select", payload: { rowIndex: number; columnIndex: number; shift: boolean }): void;
     (event: "cell-focus", payload: { rowIndex: number; columnIndex: number }): void;
+    (
+      event: "cell-commit",
+      payload: { rowIndex: number; columnIndex: number; rowId: string | number; columnKey: string; previousValue: any; nextValue: any }
+    ): void;
   }>();
 
   const value = defineModel<TRow[TKey]>();
@@ -58,6 +62,7 @@
   const repeatTimeoutHandles = new Map<ArrowNavigationKey, number>();
   const cellElement = ref<HTMLElement | null>(null);
   const originalValue = ref<TRow[TKey] | null>(null);
+  const hasOriginalValue = ref(false);
   const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
   const isActive = computed(() =>
@@ -156,7 +161,28 @@
 
   watch(isActive, (active) => {
     if (active) {
-      originalValue.value = value.value;
+      originalValue.value = value.value ?? null;
+      hasOriginalValue.value = true;
+      return;
+    }
+
+    if (hasOriginalValue.value) {
+      const previousValue = originalValue.value;
+      const nextValue = value.value;
+
+      if (!Object.is(previousValue, nextValue)) {
+        emit("cell-commit", {
+          rowIndex: props.rowIndex,
+          columnIndex: props.columnIndex,
+          rowId: props.rowId,
+          columnKey: String(props.columnKey),
+          previousValue,
+          nextValue
+        });
+      }
+
+      originalValue.value = null;
+      hasOriginalValue.value = false;
     }
   });
 
@@ -249,6 +275,10 @@
   onBeforeUnmount(() => {
     stopAllRepeats();
   });
+
+  function onBlur() {
+    stopEditing();
+  }
 </script>
 
 <template>
@@ -258,6 +288,6 @@
     :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected }), !isActive ? 'select-none' : '']"
     @mousedown="onMouseDown"
     @dblclick="onDblClick">
-    <EditableTableCellEditor v-model="value" :type="columnType" @blur="stopEditing" class="w-full" :is-editable="isActive" />
+    <EditableTableCellEditor v-model="value" :type="columnType" @blur="onBlur" class="w-full" :is-editable="isActive" />
   </div>
 </template>

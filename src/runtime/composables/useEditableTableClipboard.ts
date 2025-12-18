@@ -14,12 +14,30 @@ export interface ClipboardOptions<TRow extends Record<string, any>> {
   selectionRange: ComputedRef<TableSelectionRange | null>;
   selectedRowIndexes: ComputedRef<number[]>;
   selectedColumnIndexes: ComputedRef<number[]>;
+  getRowId?: (row: TRow, rowIndex: number) => string | number;
+  onCellsChanged?: (
+    payload: {
+      rowId: string | number;
+      columnKey: keyof TRow | string;
+      previousValue: TRow[keyof TRow];
+      nextValue: TRow[keyof TRow];
+    }[]
+  ) => void;
 }
 
 export function useEditableTableClipboard<TRow extends Record<string, any>>(options: ClipboardOptions<TRow>) {
-  const { rows, columns, selectionRange, selectedRowIndexes, selectedColumnIndexes } = options;
+  const { rows, columns, selectionRange, selectedRowIndexes, selectedColumnIndexes, getRowId, onCellsChanged } = options;
 
-  function applyValueToCell(rowIndex: number, columnIndex: number, rawValue: string) {
+  function applyValueToCell(
+    rowIndex: number,
+    columnIndex: number,
+    rawValue: string
+  ): {
+    rowId: string | number;
+    columnKey: keyof TRow | string;
+    previousValue: TRow[keyof TRow];
+    nextValue: TRow[keyof TRow];
+  } | null {
     const column = columns.value[columnIndex];
     if (!column) return;
 
@@ -35,7 +53,19 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
       parsedValue = ["true", "1", "yes", "y", "on", "✓", "✔"].includes(normalizedValue);
     }
 
-    rows.value[rowIndex][key] = parsedValue as TRow[keyof TRow];
+    const previousValue = rows.value[rowIndex][key];
+    const nextValue = parsedValue as TRow[keyof TRow];
+
+    if (Object.is(previousValue, nextValue)) return null;
+
+    rows.value[rowIndex][key] = nextValue;
+
+    return {
+      rowId: getRowId ? getRowId(rows.value[rowIndex], rowIndex) : rowIndex,
+      columnKey: key,
+      previousValue,
+      nextValue
+    };
   }
 
   function handleCopyEvent(event: ClipboardEvent) {
@@ -93,19 +123,33 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
 
     if (matrixHeight === 1 && matrixWidth === 1) {
       const singleValue = matrix[0][0] ?? "";
+      const changes: NonNullable<ReturnType<typeof applyValueToCell>>[] = [];
+
       rowIndexes.forEach((rowIndex) => {
-        columnIndexes.forEach((columnIndex) => applyValueToCell(rowIndex, columnIndex, singleValue));
+        columnIndexes.forEach((columnIndex) => {
+          const change = applyValueToCell(rowIndex, columnIndex, singleValue);
+          if (change) changes.push(change);
+        });
       });
+
+      if (changes.length) onCellsChanged?.(changes);
       return;
     }
 
     const rowsToFill = Math.min(rowIndexes.length, matrixHeight);
     const columnsToFill = Math.min(columnIndexes.length, matrixWidth);
 
+    const changes: NonNullable<ReturnType<typeof applyValueToCell>>[] = [];
+
     for (let rowOffset = 0; rowOffset < rowsToFill; rowOffset++) {
       for (let columnOffset = 0; columnOffset < columnsToFill; columnOffset++) {
-        applyValueToCell(rowIndexes[rowOffset], columnIndexes[columnOffset], matrix[rowOffset]?.[columnOffset] ?? "");
+        const change = applyValueToCell(rowIndexes[rowOffset], columnIndexes[columnOffset], matrix[rowOffset]?.[columnOffset] ?? "");
+        if (change) changes.push(change);
       }
+    }
+
+    if (changes.length) {
+      onCellsChanged?.(changes);
     }
   }
 
