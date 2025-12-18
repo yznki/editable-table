@@ -45,6 +45,30 @@
   const tableElement = ref<HTMLElement | null>(null);
   const headerRowElement = ref<HTMLElement | null>(null);
   const bodyWrapperElement = ref<HTMLElement | null>(null);
+  const manualSelectOptions = ref<Record<string, string[]>>({});
+  const selectOptions = computed(() => {
+    const result: Record<string, string[]> = {};
+
+    columns.value.forEach((column) => {
+      if (column.type !== "select") return;
+      const key = String(column.rowKey);
+      const merged = new Set<string>();
+
+      rows.value.forEach((row) => {
+        const option = normalizeSelectOption(row[column.rowKey as keyof TRow]);
+        if (option) merged.add(option);
+      });
+
+      const manualOptions = manualSelectOptions.value[key] ?? [];
+      manualOptions.forEach((option) => {
+        if (merged.has(option)) merged.add(option);
+      });
+
+      result[key] = Array.from(merged);
+    });
+
+    return result;
+  });
   const columnMenuPosition = ref<{ left: number; top: number } | null>(null);
   const columnMenuIndex = ref<number | null>(null);
   const indexColumnWidth = "3rem";
@@ -131,6 +155,27 @@
       "opacity-30 pointer-events-none transition-opacity duration-150 ease-out"
     : "transition-opacity duration-150 ease-out"
   );
+
+  function normalizeSelectOption(value: unknown) {
+    if (value === null || value === undefined) return null;
+    const stringValue = typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : `${value}`;
+    const trimmed = stringValue.trim();
+    return trimmed.length ? trimmed : null;
+  }
+
+  function addSelectOption(columnKey: string | number, value: unknown) {
+    const option = normalizeSelectOption(value);
+    if (!option) return;
+
+    const key = String(columnKey);
+    const existingOptions = manualSelectOptions.value[key] ?? [];
+    if (existingOptions.includes(option)) return;
+
+    manualSelectOptions.value = {
+      ...manualSelectOptions.value,
+      [key]: [...existingOptions, option]
+    };
+  }
 
   function assignRowId(row: TRow, preferredId?: string | number) {
     const mappedId = rowIdMap.get(row);
@@ -370,8 +415,13 @@
     previousValue: TRow[keyof TRow];
     nextValue: TRow[keyof TRow];
   }) {
-    const { rowId, columnKey, previousValue, nextValue } = payload;
+    const { rowId, columnKey, previousValue, nextValue, columnIndex } = payload;
     if (Object.is(previousValue, nextValue)) return;
+
+    const column = columns.value[columnIndex];
+    if (column?.type === "select") {
+      addSelectOption(column.rowKey as string, nextValue);
+    }
 
     recordCellChanges(
       [
@@ -602,6 +652,12 @@
     selectedColumnIndexes,
     getRowId,
     onCellsChanged(changes) {
+      changes.forEach((change) => {
+        const column = columns.value.find((col) => String(col.rowKey) === String(change.columnKey));
+        if (column?.type === "select") {
+          addSelectOption(column.rowKey as string, change.nextValue);
+        }
+      });
       recordCellChanges(changes, "Paste values");
     }
   });
@@ -770,6 +826,7 @@
           :row-count="rows.length"
           :column-count="columns.length"
           :selection-range="selectionRange"
+          :select-options="selectOptions[String(column.rowKey)] ?? []"
           :class="draggingColumnIndex === columnIndex ? draggingColumnBodyClass : ''"
           @cell-select="onCellSelect"
           @cell-focus="onCellFocus"

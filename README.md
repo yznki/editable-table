@@ -1,13 +1,7 @@
 # Editable Table for Nuxt
 
-[![npm version][npm-version-src]][npm-version-href]
-[![npm downloads][npm-downloads-src]][npm-downloads-href]
-[![License][license-src]][license-href]
-[![Nuxt][nuxt-src]][nuxt-href]
-
 Rich, keyboard-friendly spreadsheet interactions packaged as a Nuxt module. Drop the `<EditableTable />` component into any Nuxt app to get inline editing, selection, clipboard support, and column/row tools out of the box.
 
-- [✨ Release Notes](/CHANGELOG.md)
 - [🧪 Playground](./playground/app.vue)
 
 ## Highlights
@@ -15,6 +9,7 @@ Rich, keyboard-friendly spreadsheet interactions packaged as a Nuxt module. Drop
 - Inline editors for text, number, boolean (checkbox), date, and custom cells.
 - Spreadsheet-grade keyboard support: arrows, Tab/Shift+Tab, Enter, Esc, Shift+arrows for range selection, Cmd/Ctrl+Z/Y for undo/redo.
 - Copy/paste ranges to and from spreadsheets (tab/newline delimited).
+- Select columns that remember any value you type, show pills in display mode, and offer a scrollable, keyboard-friendly dropdown with filtering and arrow navigation.
 - Column tools: reorder via drag, type switching (optional), and sort asc/desc.
 - Row tools: add rows, insert above/below, move up/down, delete.
 - Numeric rollups for selected number columns (sum/avg/min/max/count).
@@ -24,8 +19,6 @@ Rich, keyboard-friendly spreadsheet interactions packaged as a Nuxt module. Drop
 
 ```bash
 npm install editable-table
-# or
-yarn add editable-table
 ```
 
 Enable the module in your Nuxt config:
@@ -39,6 +32,7 @@ export default defineNuxtConfig({
 ```
 
 The module:
+
 - Registers the `<EditableTable />` component globally.
 - Auto-imports composables under `@composables`.
 - Exposes types under `@models`.
@@ -48,27 +42,27 @@ The module:
 
 ```vue
 <script setup lang="ts">
-import type { EditableTableColumn } from "@models/column";
+  import type { EditableTableColumn } from "@models/column";
 
-type PersonRow = {
-  id: number;
-  name: string;
-  age: number;
-  active: boolean;
-  joinedAt: string;
-};
+  type PersonRow = {
+    id: number;
+    name: string;
+    age: number;
+    active: boolean;
+    joinedAt: string;
+  };
 
-const rows = ref<PersonRow[]>([
-  { id: 1, name: "Ada Lovelace", age: 36, active: true, joinedAt: "1843-07-01" },
-  { id: 2, name: "Alan Turing", age: 41, active: false, joinedAt: "1950-06-23" }
-]);
+  const rows = ref<PersonRow[]>([
+    { id: 1, name: "Ada Lovelace", age: 36, active: true, joinedAt: "1843-07-01" },
+    { id: 2, name: "Alan Turing", age: 41, active: false, joinedAt: "1950-06-23" }
+  ]);
 
-const columns = ref<EditableTableColumn<PersonRow>[]>([
-  { rowKey: "name", title: "Name", type: "text" },
-  { rowKey: "age", title: "Age", type: "number" },
-  { rowKey: "active", title: "Active", type: "boolean" },
-  { rowKey: "joinedAt", title: "Joined", type: "date" }
-]);
+  const columns = ref<EditableTableColumn<PersonRow>[]>([
+    { rowKey: "name", title: "Name", type: "text" },
+    { rowKey: "age", title: "Age", type: "number" },
+    { rowKey: "active", title: "Active", type: "boolean" },
+    { rowKey: "joinedAt", title: "Joined", type: "date" }
+  ]);
 </script>
 
 <template>
@@ -93,19 +87,19 @@ type ColumnType = "text" | "number" | "boolean" | "select" | "date" | "custom";
 
 interface EditableTableColumn<TRow> {
   rowKey: keyof TRow | string; // field on the row object
-  title: string;               // header label
-  type?: ColumnType;           // defaults to "text"
-  editable?: boolean;          // reserved for future use
-  required?: boolean;          // reserved for future use
-  width?: number | string;     // reserved for future use
+  title: string; // header label
+  type?: ColumnType; // defaults to "text"
+  width?: number | string; // reserved for future use
 }
 ```
 
 Type handling:
+
 - `number`: coerces numeric-looking strings to numbers.
 - `boolean`: checkbox editor; accepts common truthy/falsey strings on paste.
 - `date`: ISO `YYYY-MM-DD` strings in the UI; accepts `Date` or parsable strings.
-- `select`/`custom`: rendered as text input by default (slotting coming later).
+- `select`: values typed in any cell become reusable options; display mode shows colored pills; dropdown is scrollable, filterable, arrow-navigable, and closes on Enter selection.
+- `custom`: rendered as text input by default (slotting coming later).
 
 ### Keyboard & mouse reference
 
@@ -150,13 +144,3 @@ npm run format:check
 ```
 
 When publishing, `npm run prepack` builds the module output under `dist`.
-
-<!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/editable-table/latest.svg?style=flat&colorA=020420&colorB=00DC82
-[npm-version-href]: https://npmjs.com/package/editable-table
-[npm-downloads-src]: https://img.shields.io/npm/dm/editable-table.svg?style=flat&colorA=020420&colorB=00DC82
-[npm-downloads-href]: https://npm.chart.dev/editable-table
-[license-src]: https://img.shields.io/npm/l/editable-table.svg?style=flat&colorA=020420&colorB=00DC82
-[license-href]: https://npmjs.com/package/editable-table
-[nuxt-src]: https://img.shields.io/badge/Nuxt-020420?logo=nuxt.js
-[nuxt-href]: https://nuxt.com
