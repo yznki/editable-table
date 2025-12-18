@@ -3,6 +3,14 @@
   import { cva } from "class-variance-authority";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import {
+    faAnglesLeft,
+    faAnglesRight,
+    faArrowDownWideShort,
+    faArrowLeftLong,
+    faArrowRightLong,
+    faArrowUpShortWide
+  } from "@fortawesome/free-solid-svg-icons";
+  import {
     ColumnType,
     type ColumnTypeOption,
     type EditableTableColumn,
@@ -99,6 +107,8 @@
   const canMoveLeft = computed(() => props.columnIndex > 0);
   const canMoveRight = computed(() => props.columnIndex < props.columnsLength - 1);
   const currentTypeOption = computed(() => resolveColumnTypeOption(props.column.type, typeOptions.value));
+  const moveLeftIcon = computed(() => (isShiftHeld.value ? faAnglesLeft : faArrowLeftLong));
+  const moveRightIcon = computed(() => (isShiftHeld.value ? faAnglesRight : faArrowRightLong));
 
   function clearTypeSubmenuCloseTimeout() {
     if (typeSubmenuCloseTimeout.value !== null) {
@@ -221,14 +231,30 @@
       </template>
 
       <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
-        <button type="button" :class="actionClass()" @click="sort('asc')">Sort ascending</button>
-        <button type="button" :class="actionClass()" @click="sort('desc')">Sort descending</button>
+        <button type="button" :class="actionClass()" @click="sort('asc')">
+          <span class="flex items-center gap-2">
+            <FontAwesomeIcon :icon="faArrowUpShortWide" class="h-4 w-4 text-gray-500" />
+            <span>Sort ascending</span>
+          </span>
+        </button>
+        <button type="button" :class="actionClass()" @click="sort('desc')">
+          <span class="flex items-center gap-2">
+            <FontAwesomeIcon :icon="faArrowDownWideShort" class="h-4 w-4 text-gray-500" />
+            <span>Sort descending</span>
+          </span>
+        </button>
         <div class="border-t border-gray-100 pt-2 space-y-1">
           <button type="button" :class="actionClass({ disabled: !canMoveLeft })" :disabled="!canMoveLeft" @click="onMoveLeft">
-            Move {{ !isShiftHeld ? "left" : "to start" }}
+            <span class="flex items-center gap-2">
+              <FontAwesomeIcon :icon="moveLeftIcon" class="h-4 w-4 text-gray-500" />
+              <span>Move {{ !isShiftHeld ? "left" : "to start" }}</span>
+            </span>
           </button>
           <button type="button" :class="actionClass({ disabled: !canMoveRight })" :disabled="!canMoveRight" @click="onMoveRight">
-            Move {{ !isShiftHeld ? "right" : "to end" }}
+            <span class="flex items-center gap-2">
+              <FontAwesomeIcon :icon="moveRightIcon" class="h-4 w-4 text-gray-500" />
+              <span>Move {{ !isShiftHeld ? "right" : "to end" }}</span>
+            </span>
           </button>
         </div>
       </div>

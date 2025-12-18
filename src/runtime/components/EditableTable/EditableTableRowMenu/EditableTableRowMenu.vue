@@ -90,8 +90,6 @@
     transition="fade"
     clamp-to-viewport>
     <div class="w-56 space-y-1">
-      <div :class="titleClass()">Row {{ props.rowIndex + 1 }}</div>
-
       <button type="button" :class="actionClass()" @click="onInsertAbove">
         <span class="flex items-center gap-2">
           <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-500" />
