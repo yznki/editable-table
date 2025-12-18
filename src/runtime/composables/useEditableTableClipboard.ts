@@ -14,7 +14,7 @@ export interface ClipboardOptions<TRow extends Record<string, any>> {
   selectionRange: ComputedRef<TableSelectionRange | null>;
   selectedRowIndexes: ComputedRef<number[]>;
   selectedColumnIndexes: ComputedRef<number[]>;
-  getRowId?: (row: TRow, rowIndex: number) => string | number;
+  getRowId?: (row: TRow) => string | number;
   onCellsChanged?: (
     payload: {
       rowId: string | number;
@@ -63,7 +63,7 @@ export function useEditableTableClipboard<TRow extends Record<string, any>>(opti
     rows.value[rowIndex][key] = nextValue;
 
     return {
-      rowId: getRowId ? getRowId(rows.value[rowIndex], rowIndex) : rowIndex,
+      rowId: getRowId ? getRowId(rows.value[rowIndex]) : rowIndex,
       columnKey: key,
       previousValue,
       nextValue

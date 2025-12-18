@@ -3,7 +3,7 @@
   import { useMagicKeys } from "@vueuse/core";
   import { cva } from "class-variance-authority";
 
-  import EditableTableCellEditor from "@components/EditableTableCellEditor/EditableTableCellEditor.vue";
+  import EditableTableCellEditor from "@components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
   import { useEditableTableEditing } from "@composables/useEditableTableEditing";
   import { useEditableTableNavigation } from "@composables/useEditableTableNavigation";
   import { ColumnType } from "@models/column";

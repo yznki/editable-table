@@ -24,10 +24,17 @@
     nextValue: TRow[keyof TRow];
   };
 
-  const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { idPropertyName: "id", allowColumnTypeChanges: false });
+  const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { allowColumnTypeChanges: false });
 
   const rows = defineModel<TRow[]>({ default: () => [] });
   const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [] });
+
+  const ROW_ID_SYMBOL = Symbol("editable-table-row-id");
+  let rowIdCounter = 1;
+  const rowIdMap = new WeakMap<TRow, string | number>();
+  const usedRowIds = new Set<string | number>();
+
+  type RowWithInternalId = TRow & { [ROW_ID_SYMBOL]?: string | number };
 
   const selectionAnchor = ref<CellPosition | null>(null);
   const selectionEnd = ref<CellPosition | null>(null);
@@ -119,15 +126,53 @@
     : "transition-opacity duration-150 ease-out"
   );
 
+  function assignRowId(row: TRow, preferredId?: string | number) {
+    const mappedId = rowIdMap.get(row);
+    if (mappedId !== undefined) return mappedId;
+
+    const typedRow = row as RowWithInternalId;
+    const existingId = typedRow[ROW_ID_SYMBOL];
+    if (existingId !== undefined) {
+      rowIdMap.set(row, existingId);
+      usedRowIds.add(existingId);
+      return existingId;
+    }
+
+    const candidateFromData = (row as Record<string, unknown>).id;
+    const dataId = typeof candidateFromData === "string" || typeof candidateFromData === "number" ? candidateFromData : undefined;
+    let nextId = preferredId ?? dataId;
+    if (nextId === undefined || usedRowIds.has(nextId)) {
+      do {
+        nextId = `editable-row-${rowIdCounter++}`;
+      } while (usedRowIds.has(nextId));
+    }
+
+    rowIdMap.set(row, nextId);
+    usedRowIds.add(nextId);
+
+    if (Object.isExtensible(row)) {
+      Object.defineProperty(row, ROW_ID_SYMBOL, {
+        value: nextId,
+        writable: false,
+        enumerable: false
+      });
+    }
+
+    return nextId;
+  }
+
+  function cloneRowWithId(row: TRow) {
+    const rowId = assignRowId(row);
+    const clonedRow = { ...row };
+    assignRowId(clonedRow, rowId);
+    return clonedRow;
+  }
+
   /**
    * Gets the unique identifier for a given row.
    * @param row - The row object.
-   * @param rowIndex - The index of the row.
    */
-  const getRowId = (row: TRow, rowIndex: number) => {
-    const rowId = row[props.idPropertyName as keyof TRow];
-    return rowId ?? rowIndex;
-  };
+  const getRowId = (row: TRow) => assignRowId(row);
 
   function applyCellChanges(changes: CellChange[], direction: "undo" | "redo") {
     if (!changes.length) return;
@@ -139,12 +184,12 @@
       return accumulator;
     }, new Map<CellChange["rowId"], CellChange[]>());
 
-    rows.value = rows.value.map((row, rowIndex) => {
-      const rowId = getRowId(row, rowIndex);
+    rows.value = rows.value.map((row) => {
+      const rowId = getRowId(row);
       const rowChanges = changesByRow.get(rowId);
       if (!rowChanges?.length) return row;
 
-      const updatedRow = { ...row };
+      const updatedRow = cloneRowWithId(row);
       rowChanges.forEach((change) => {
         const value = direction === "undo" ? change.previousValue : change.nextValue;
         updatedRow[change.columnKey as keyof TRow] = value;
@@ -221,18 +266,22 @@
   function coerceColumnValues(columnKey: keyof TRow | string, targetType: ColumnType) {
     const valueChanges: CellChange[] = [];
 
-    rows.value = rows.value.map((row, rowIndex) => {
+    rows.value = rows.value.map((row) => {
+      const rowId = getRowId(row);
       const currentValue = row[columnKey as keyof TRow];
       const { value: coercedValue, changed } = coerceValueForType(currentValue, targetType);
       if (!changed) return row;
 
-      const nextRow = { ...row, [columnKey]: coercedValue };
-      valueChanges.push({
-        rowId: getRowId(row, rowIndex),
-        columnKey,
-        previousValue: currentValue,
-        nextValue: coercedValue as TRow[keyof TRow]
-      });
+      const nextRow = cloneRowWithId(row);
+      if (coercedValue !== undefined) {
+        nextRow[columnKey as keyof TRow] = coercedValue as TRow[keyof TRow];
+        valueChanges.push({
+          rowId,
+          columnKey,
+          previousValue: currentValue,
+          nextValue: coercedValue as TRow[keyof TRow]
+        });
+      }
 
       return nextRow;
     });
@@ -612,7 +661,7 @@
     const firstColumn = columns.value[0];
     const targetRow = rows.value[rowIndex];
     if (!firstColumn || !targetRow) return;
-    const rowId = getRowId(targetRow, rowIndex);
+    const rowId = getRowId(targetRow);
     startEditing({ rowId, columnKey: String(firstColumn.rowKey) });
   }
 
@@ -674,8 +723,8 @@
         @click="onHeaderClick(columnIndex, $event)">
         <div class="flex min-w-0 items-center gap-2">
           <FontAwesomeIcon
-            v-if="getColumnTypeOption(column.type).icon"
-            :icon="getColumnTypeOption(column.type).icon"
+            v-if="getColumnTypeOption(column.type).icon !== undefined"
+            :icon="getColumnTypeOption(column.type).icon!"
             class="text-gray-400"
             size="xs" />
           <span class="truncate">{{ column.title }}</span>
@@ -690,7 +739,7 @@
     </div>
 
     <div :class="bodyWrapper()" ref="bodyWrapperElement">
-      <div v-for="(row, rowIndex) in rows" :key="String(getRowId(row, rowIndex))" :class="bodyRow()" :style="gridStyle">
+      <div v-for="(row, rowIndex) in rows" :key="String(getRowId(row))" :class="bodyRow()" :style="gridStyle">
         <div :class="indexCell()" @click="onIndexClick(rowIndex, $event)" @contextmenu="onIndexContextMenu(rowIndex, $event)">
           {{ rowIndex + 1 }}
         </div>
@@ -698,7 +747,7 @@
           v-for="(column, columnIndex) in columns"
           :key="String(column.rowKey)"
           v-model="rows[rowIndex][column.rowKey as keyof TRow]"
-          :row-id="getRowId(row, rowIndex)"
+          :row-id="getRowId(row)"
           :column-key="column.rowKey"
           :column-type="column.type"
           :row-index="rowIndex"

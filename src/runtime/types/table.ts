@@ -6,6 +6,5 @@ export interface EditableTableProps<TRow extends Record<string, any> = Record<st
   modelValue: TRow[];
   columns: EditableTableColumn<TRow>[];
 
-  idPropertyName?: keyof TRow | string;
   allowColumnTypeChanges?: boolean;
 }

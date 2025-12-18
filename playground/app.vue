@@ -10,7 +10,7 @@
     joinedAt: string;
   };
 
-  const rowCount = 50;
+  const rowCount = 5;
 
   function generateRows() {
     const mockNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah"];
@@ -64,14 +64,14 @@
   <div style="padding: 24px">
     <h1>Editable Table Playground</h1>
 
-    <EditableTable v-model="rows" v-model:columns="columns" id-property-name="id" allow-column-type-changes />
+    <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes />
 
-    <!-- <pre>
+    <pre>
       {{ rows.length }}
     </pre>
 
     <pre style="margin-top: 24px"
       >{{ rows }}
-    </pre> -->
+    </pre>
   </div>
 </template>
