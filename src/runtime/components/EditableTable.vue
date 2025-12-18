@@ -246,6 +246,7 @@
     selectionAnchor.value = selectionAnchor.value ? { ...selectionAnchor.value, columnIndex: 0 } : position;
     selectionEnd.value = { rowIndex, columnIndex: Math.max(0, columns.value.length - 1) };
     preserveSelectionOnNextFocus.value = shouldExtendSelection;
+    clearActive();
   }
 
   /**
