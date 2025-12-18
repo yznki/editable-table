@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { computed, ref, watch } from "vue";
+  import { computed, nextTick, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
   import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
@@ -15,6 +15,7 @@
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+  import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -57,7 +58,8 @@
     insertRowBelow,
     moveRowUp,
     moveRowDown,
-    deleteRow
+    deleteRow,
+    appendRow
   } = useEditableTableRows<TRow>({
     rows,
     columns,
@@ -600,6 +602,34 @@
     }
   );
 
+  function focusCell(rowIndex: number, columnIndex: number) {
+    const maximumRowIndex = Math.max(0, rows.value.length - 1);
+    const maximumColumnIndex = Math.max(0, columns.value.length - 1);
+    const safeRowIndex = Math.min(Math.max(rowIndex, 0), maximumRowIndex);
+    const safeColumnIndex = Math.min(Math.max(columnIndex, 0), maximumColumnIndex);
+
+    setSelection({ rowIndex: safeRowIndex, columnIndex: safeColumnIndex }, false);
+    preserveSelectionOnNextFocus.value = false;
+    setActive({ rowIndex: safeRowIndex, columnIndex: safeColumnIndex });
+  }
+
+  async function appendRowAndFocus(columnIndex = 0, shouldStartEditing = false) {
+    const newRowIndex = appendRow();
+    if (newRowIndex === null) return;
+
+    await nextTick();
+
+    focusCell(newRowIndex, columnIndex);
+
+    if (!shouldStartEditing) return;
+
+    const targetColumn = columns.value[columnIndex];
+    const targetRow = rows.value[newRowIndex];
+    if (!targetColumn || !targetRow) return;
+
+    startEditing({ rowId: getRowId(targetRow, newRowIndex), columnKey: String(targetColumn.rowKey) });
+  }
+
   function focusRow(rowIndex: number) {
     if (rowIndex < 0 || rowIndex >= rows.value.length) return;
     selectRowRange(rowIndex, false);
@@ -614,6 +644,14 @@
     if (!firstColumn || !targetRow) return;
     const rowId = getRowId(targetRow, rowIndex);
     startEditing({ rowId, columnKey: String(firstColumn.rowKey) });
+  }
+
+  function handleAddRowClick() {
+    appendRowAndFocus(0, true);
+  }
+
+  function handleAppendRowFromCell(columnIndex: number, shouldStartEditing: boolean) {
+    appendRowAndFocus(columnIndex, shouldStartEditing);
   }
 
   function handleInsertRow(direction: "above" | "below") {
@@ -649,6 +687,10 @@
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
+  const addRowRow = cva("grid bg-gray-50/50");
+  const addRowButton = cva(
+    "flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-gray-300 bg-white text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-600 active:bg-gray-50"
+  );
   const bodyWrapper = cva("relative flex-1 overflow-auto");
 </script>
 
@@ -709,7 +751,17 @@
           :class="draggingColumnIndex === columnIndex ? draggingColumnBodyClass : ''"
           @cell-select="onCellSelect"
           @cell-focus="onCellFocus"
-          @cell-commit="onCellCommit" />
+          @cell-commit="onCellCommit"
+          @request-append-row="handleAppendRowFromCell($event.columnIndex, $event.startEditing)" />
+      </div>
+
+      <div :class="addRowRow()" :style="gridStyle">
+        <div class="col-span-full flex items-center justify-center py-2">
+          <button type="button" :class="addRowButton()" @click="handleAddRowClick">
+            <FontAwesomeIcon :icon="faPlus" class="h-4 w-4" />
+            <span class="sr-only">Add row</span>
+          </button>
+        </div>
       </div>
     </div>
 

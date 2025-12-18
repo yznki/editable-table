@@ -40,6 +40,7 @@
       event: "cell-commit",
       payload: { rowIndex: number; columnIndex: number; rowId: string | number; columnKey: string; previousValue: any; nextValue: any }
     ): void;
+    (event: "request-append-row", payload: { columnIndex: number; startEditing: boolean }): void;
   }>();
 
   const value = defineModel<TRow[TKey]>();
@@ -203,7 +204,15 @@
       return;
     }
 
+    const didChange = hasOriginalValue.value && !Object.is(originalValue.value, value.value);
     stopEditing();
+
+    const isLastRow = props.rowIndex === props.rowCount - 1;
+    if (isLastRow && didChange) {
+      emit("request-append-row", { columnIndex: props.columnIndex, startEditing: true });
+      return;
+    }
+
     move("down", props.rowCount, props.columnCount);
   });
 
