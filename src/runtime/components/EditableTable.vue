@@ -34,7 +34,7 @@
   const isColumnMenuVisible = ref(false);
   const getColumnTypeOption = (type?: ColumnType) => resolveColumnTypeOption(type, defaultColumnTypeOptions);
 
-  const { clearActive, activePosition, setActive, handleTableKeyDown } = useEditableTableNavigation();
+  const { clearActive, activePosition, setActive, handleTableKeyDown, disableScrollOnNextFocus } = useEditableTableNavigation();
 
   onClickOutside(tableElement, () => {
     clearActive();
@@ -333,6 +333,7 @@
     const columnKey = column.rowKey as keyof TRow;
     const columnType = column.type ?? "text";
 
+    disableScrollOnNextFocus();
     rows.value = [...rows.value].sort((rowA, rowB) => compareValuesForSort(rowA?.[columnKey], rowB?.[columnKey], columnType, direction));
   }
 
