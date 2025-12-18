@@ -30,11 +30,11 @@
     variants: {
       destructive: {
         true: "text-red-600 hover:bg-red-50",
-        false: "text-gray-800 hover:bg-gray-50"
+        false: "hover:bg-gray-50"
       },
       disabled: {
         true: "cursor-not-allowed text-gray-400 hover:bg-transparent",
-        false: ""
+        false: "text-gray-800"
       }
     },
     compoundVariants: [
@@ -95,14 +95,14 @@
       <button type="button" :class="actionClass()" @click="onInsertAbove">
         <span class="flex items-center gap-2">
           <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-500" />
-          <span>Add row above</span>
+          <span>Insert above</span>
         </span>
       </button>
 
       <button type="button" :class="actionClass()" @click="onInsertBelow">
         <span class="flex items-center gap-2">
           <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-500" />
-          <span>Add row below</span>
+          <span>Insert below</span>
         </span>
       </button>
 
@@ -126,10 +126,9 @@
 
       <button type="button" :class="actionClass({ destructive: true })" @click="onDeleteRow">
         <span class="flex items-center gap-2">
-          <span class="h-2 w-2 rounded-full bg-red-500" />
+          <FontAwesomeIcon :icon="faTrashCan" class="h-4 w-4 text-red-500" />
           <span>Delete row</span>
         </span>
-        <FontAwesomeIcon :icon="faTrashCan" class="h-4 w-4 text-red-500" />
       </button>
     </div>
   </ContextMenu>
