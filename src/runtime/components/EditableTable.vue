@@ -9,11 +9,12 @@
   import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
   import { useEditableTableHistory } from "@composables/useEditableTableHistory";
   import { useEditableTableEditing } from "@composables/useEditableTableEditing";
+  import { useEditableTableSorting } from "@composables/useEditableTableSorting";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
+  import EditableTableHeaderCell from "./EditableTableHeaderCell/EditableTableHeaderCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
-  import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-  import { faPlus } from "@fortawesome/free-solid-svg-icons";
+  import EditableTableAddRow from "./EditableTableAddRow/EditableTableAddRow.vue";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -46,6 +47,11 @@
   const { pushEntry: pushHistoryEntry, undo, redo } = useEditableTableHistory();
   const { clearActive, activePosition, setActive, handleTableKeyDown, disableScrollOnNextFocus } = useEditableTableNavigation();
   const { startEditing } = useEditableTableEditing();
+  const { sortByColumn } = useEditableTableSorting<TRow>({
+    rows,
+    columns,
+    disableScrollOnNextFocus
+  });
 
   onClickOutside(tableElement, () => {
     clearActive();
@@ -402,16 +408,6 @@
     });
   }
 
-  async function onAddRowClick(targetColumnIndex = 0) {
-    const columnIndex = Math.min(targetColumnIndex, Math.max(0, columns.value.length - 1));
-    const newRowIndex = addRow(rows.value.length - 1);
-    await nextTick();
-    bodyWrapperElement.value?.scrollTo({ top: bodyWrapperElement.value.scrollHeight });
-    if (columns.value.length) {
-      focusAndEditCell(newRowIndex, columnIndex);
-    }
-  }
-
   function onEnterNavigation(payload: { rowIndex: number; columnIndex: number; columnKey: string; isLastRow: boolean }) {
     const targetRowIndex = payload.rowIndex + 1;
 
@@ -542,58 +538,9 @@
     columnMenuIndex.value = targetIndex;
   }
 
-  function normalizeForSort(value: unknown, type: ColumnType) {
-    if (value === null || value === undefined) {
-      return { comparable: null, isNullish: true };
-    }
-
-    switch (type) {
-      case "number": {
-        const numericValue = typeof value === "number" ? value : Number(value);
-        return { comparable: numericValue, isNullish: Number.isNaN(numericValue) };
-      }
-      case "boolean":
-        return { comparable: value === true || value === "true" || value === 1 ? 1 : 0, isNullish: false };
-      case "date": {
-        const timestamp = value instanceof Date ? value.getTime() : new Date(value as any).getTime();
-        return { comparable: timestamp, isNullish: Number.isNaN(timestamp) };
-      }
-      case "select":
-      case "custom":
-      case "text":
-      default:
-        return { comparable: String(value).toLowerCase(), isNullish: false };
-    }
-  }
-
-  function compareValuesForSort(a: unknown, b: unknown, type: ColumnType, direction: "asc" | "desc") {
-    const normalizedA = normalizeForSort(a, type);
-    const normalizedB = normalizeForSort(b, type);
-
-    if (normalizedA.isNullish && normalizedB.isNullish) return 0;
-    if (normalizedA.isNullish) return 1;
-    if (normalizedB.isNullish) return -1;
-
-    if (normalizedA.comparable === normalizedB.comparable) return 0;
-
-    if (normalizedA.comparable === null && normalizedB.comparable !== null) return 1;
-    if (normalizedA.comparable !== null && normalizedB.comparable === null) return -1;
-    if (normalizedA.comparable === null && normalizedB.comparable === null) return 0;
-
-    const result = (normalizedA.comparable as any) > (normalizedB.comparable as any) ? 1 : -1;
-    return direction === "asc" ? result : -result;
-  }
-
-  function sortRows(direction: "asc" | "desc") {
+  function onSortColumn(direction: "asc" | "desc") {
     if (columnMenuIndex.value === null) return;
-    const column = columns.value[columnMenuIndex.value];
-    if (!column) return;
-
-    const columnKey = column.rowKey as keyof TRow;
-    const columnType = column.type ?? "text";
-
-    disableScrollOnNextFocus();
-    rows.value = [...rows.value].sort((rowA, rowB) => compareValuesForSort(rowA?.[columnKey], rowB?.[columnKey], columnType, direction));
+    sortByColumn(columnMenuIndex.value, direction);
   }
 
   const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
@@ -654,11 +601,6 @@
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const bodyWrapper = cva("relative flex-1 overflow-auto");
-  const addRowRow = cva("grid border-b border-gray-200 bg-gray-100 text-gray-600");
-  const addRowButton = cva(
-    "col-span-full flex items-center justify-center gap-2 py-2 text-sm font-medium w-full cursor-pointer select-none transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-  );
-  const addRowIcon = cva("text-gray-500");
 </script>
 
 <template>
@@ -671,25 +613,17 @@
     @copy.capture="handleCopyEvent">
     <div ref="headerRowElement" :class="headerRow()" :style="gridStyle">
       <div :class="indexCell()">#</div>
-      <div
+      <EditableTableHeaderCell
         v-for="(column, columnIndex) in columns"
         :key="String(column.rowKey)"
-        :class="[headerCell(), draggingColumnIndex === columnIndex ? draggingColumnClass : '', 'flex items-center gap-2 truncate']"
-        role="button"
-        tabindex="0"
-        :data-column-index="columnIndex"
-        :data-column-key="String(column.rowKey)"
-        @pointerdown="onColumnPointerDown(columnIndex, $event)"
-        @click="onHeaderClick(columnIndex, $event)">
-        <div class="flex min-w-0 items-center gap-2">
-          <FontAwesomeIcon
-            v-if="getColumnTypeOption(column.type).icon"
-            :icon="getColumnTypeOption(column.type).icon"
-            class="text-gray-400"
-            size="xs" />
-          <span class="truncate">{{ column.title }}</span>
-        </div>
-      </div>
+        :column="column"
+        :column-index="columnIndex"
+        :dragging-column-index="draggingColumnIndex"
+        :dragging-column-class="draggingColumnClass"
+        :get-column-type-option="getColumnTypeOption"
+        :header-class="headerCell()"
+        @pointer-down="onColumnPointerDown"
+        @header-click="onHeaderClick" />
     </div>
 
     <div v-if="isDragging && dragPreviewStyle && draggingColumn" class="pointer-events-none absolute z-20" :style="dragPreviewStyle">
@@ -720,18 +654,13 @@
           @enter-navigation="onEnterNavigation" />
       </div>
 
-      <div :class="addRowRow()" :style="gridStyle">
-        <button
-          type="button"
-          :class="addRowButton()"
-          title="Add new row"
-          aria-label="Add new row"
-          @click="onAddRowClick()"
-          @keydown.enter.prevent="onAddRowClick()"
-          @keydown.space.prevent="onAddRowClick()">
-          <FontAwesomeIcon :icon="faPlus" :class="addRowIcon()" />
-        </button>
-      </div>
+      <EditableTableAddRow
+        :rows="rows"
+        :columns="columns"
+        :grid-style="gridStyle"
+        :body-wrapper-element="bodyWrapperElement"
+        :add-row="addRow"
+        :focus-and-edit-cell="focusAndEditCell" />
     </div>
 
     <EditableTableFooter
@@ -754,7 +683,7 @@
       @move-right="moveColumn('right')"
       @move-first="moveColumn('first')"
       @move-last="moveColumn('last')"
-      @sort-ascending="sortRows('asc')"
-      @sort-descending="sortRows('desc')" />
+      @sort-ascending="onSortColumn('asc')"
+      @sort-descending="onSortColumn('desc')" />
   </div>
 </template>
