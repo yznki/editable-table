@@ -8,7 +8,8 @@
     faArrowDownWideShort,
     faArrowLeftLong,
     faArrowRightLong,
-    faArrowUpShortWide
+    faArrowUpShortWide,
+    faEyeSlash
   } from "@fortawesome/free-solid-svg-icons";
   import {
     ColumnType,
@@ -39,6 +40,7 @@
     (event: "move-last"): void;
     (event: "sort-ascending"): void;
     (event: "sort-descending"): void;
+    (event: "hide-column"): void;
   }>();
 
   const { current } = useMagicKeys();
@@ -131,8 +133,8 @@
 
     typeSubmenuAlignment.value = shouldOpenLeft ? "end" : "start";
     typeSubmenuPosition.value = {
-      left: shouldOpenLeft ? -gap * 4 : typeRect.right - parentMenuRect.left + gap,
-      top: typeRect.top - parentMenuRect.top
+      left: shouldOpenLeft ? parentMenuRect.left - gap * 4 : typeRect.right + gap,
+      top: typeRect.top
     };
   }
 
@@ -169,6 +171,11 @@
   function onMoveRight() {
     if (!canMoveRight.value) return;
     isShiftHeld.value ? emit("move-last") : emit("move-right");
+    isVisible.value = false;
+  }
+
+  function onHideColumn() {
+    emit("hide-column");
     isVisible.value = false;
   }
 
@@ -210,10 +217,8 @@
           :position="typeSubmenuPosition"
           :alignment="typeSubmenuAlignment"
           vertical-alignment="none"
-          transition="fade"
-          @mouseenter="clearTypeSubmenuCloseTimeout"
-          @mouseleave="scheduleCloseTypeSubmenu">
-          <div class="space-y-1">
+          transition="fade">
+          <div class="space-y-1" @mouseenter="clearTypeSubmenuCloseTimeout" @mouseleave="scheduleCloseTypeSubmenu">
             <button
               v-for="option in typeOptions"
               :key="option.value"
@@ -241,6 +246,12 @@
           <span class="flex items-center gap-2">
             <FontAwesomeIcon :icon="faArrowDownWideShort" class="h-4 w-4 text-gray-500" />
             <span>Sort descending</span>
+          </span>
+        </button>
+        <button type="button" :class="actionClass()" @click="onHideColumn">
+          <span class="flex items-center gap-2">
+            <FontAwesomeIcon :icon="faEyeSlash" class="h-4 w-4 text-gray-500" />
+            <span>Hide column</span>
           </span>
         </button>
         <div class="border-t border-gray-100 pt-2 space-y-1">

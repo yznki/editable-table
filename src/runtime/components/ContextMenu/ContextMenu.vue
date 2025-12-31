@@ -14,13 +14,15 @@
     verticalAlignment?: "none" | "center";
     transition?: "default" | "fade";
     clampToViewport?: boolean;
+    teleportToBody?: boolean;
   }
 
   const props = withDefaults(defineProps<ContextMenuProps>(), {
     alignment: "center",
     verticalAlignment: "none",
     transition: "default",
-    clampToViewport: false
+    clampToViewport: false,
+    teleportToBody: true
   });
 
   const isVisible = defineModel<boolean>({ default: false });
@@ -28,7 +30,7 @@
   const menuElement = ref<HTMLElement | null>(null);
 
   const menuClass = cva(
-    "absolute z-20 min-w-48 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-lg ring-1 ring-black/5 transition"
+    "fixed z-50 min-w-48 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-lg ring-1 ring-black/5 transition"
   );
 
   const alignmentClass = computed(() =>
@@ -61,14 +63,37 @@
     };
   });
 
-  onClickOutside(menuElement, () => {
-    if (!isVisible.value) return;
-    isVisible.value = false;
-  });
+  onClickOutside(
+    menuElement,
+    () => {
+      if (!isVisible.value) return;
+      isVisible.value = false;
+    },
+    { ignore: ["[data-context-menu]"] }
+  );
 </script>
 
 <template>
+  <teleport v-if="props.teleportToBody" to="body">
+    <Transition
+      :enter-active-class="props.transition === 'fade' ? 'transition duration-120 ease-out' : 'transition duration-150 ease-out'"
+      :enter-from-class="props.transition === 'fade' ? 'opacity-0' : 'opacity-0 -translate-y-1'"
+      :enter-to-class="props.transition === 'fade' ? 'opacity-100' : 'opacity-100 translate-y-0'"
+      :leave-active-class="props.transition === 'fade' ? 'transition duration-100 ease-in' : 'transition duration-100 ease-in'"
+      :leave-from-class="props.transition === 'fade' ? 'opacity-100' : 'opacity-100 translate-y-0'"
+      :leave-to-class="props.transition === 'fade' ? 'opacity-0' : 'opacity-0 -translate-y-1'">
+      <div
+        v-if="isVisible"
+        ref="menuElement"
+        data-context-menu
+        :class="[menuClass(), alignmentClass, verticalAlignmentClass]"
+        :style="menuStyle">
+        <slot />
+      </div>
+    </Transition>
+  </teleport>
   <Transition
+    v-else
     :enter-active-class="props.transition === 'fade' ? 'transition duration-120 ease-out' : 'transition duration-150 ease-out'"
     :enter-from-class="props.transition === 'fade' ? 'opacity-0' : 'opacity-0 -translate-y-1'"
     :enter-to-class="props.transition === 'fade' ? 'opacity-100' : 'opacity-100 translate-y-0'"

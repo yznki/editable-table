@@ -21,6 +21,8 @@ export interface EditableTableColumn<TRow extends Record<string, any> = Record<s
   required?: boolean;
 
   width?: number | string;
+
+  hidden?: boolean;
 }
 
 export interface ColumnTypeOption {

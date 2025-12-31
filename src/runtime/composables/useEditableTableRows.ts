@@ -23,14 +23,13 @@ export function useEditableTableRows<TRow extends Record<string, any> = Record<s
   }
 
   function openRowMenu(rowIndex: number, event: MouseEvent) {
-    const tableRect = options.tableElement.value?.getBoundingClientRect();
     const targetRect = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect();
-    if (!tableRect || !targetRect) return;
+    if (!targetRect) return;
 
     rowMenuIndex.value = rowIndex;
     rowMenuPosition.value = {
-      left: targetRect.right - tableRect.left + 8,
-      top: targetRect.top - tableRect.top + targetRect.height / 2
+      left: targetRect.right + 8,
+      top: targetRect.top + targetRect.height / 2
     };
     isRowMenuVisible.value = true;
   }

@@ -11,12 +11,14 @@
   import { useEditableTableEditing } from "@composables/useEditableTableEditing";
   import { useEditableTableRows } from "@composables/useEditableTableRows";
   import { useEditableTableRowDrag } from "@composables/useEditableTableRowDrag";
+  import { useEditableTableColumnPreferences } from "@composables/useEditableTableColumnPreferences";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableRowMenu from "./EditableTableRowMenu/EditableTableRowMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-  import { faPlus } from "@fortawesome/free-solid-svg-icons";
+  import { faEyeSlash, faPlus } from "@fortawesome/free-solid-svg-icons";
+  import EditableTableHeaderMenu from "@components/EditableTable/EditableTableHeaderMenu.vue";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -25,7 +27,6 @@
     previousValue: TRow[keyof TRow];
     nextValue: TRow[keyof TRow];
   };
-
   const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { allowColumnTypeChanges: false });
 
   const rows = defineModel<TRow[]>({ default: () => [] });
@@ -76,6 +77,8 @@
   const indexColumnWidth = "3rem";
 
   const isColumnMenuVisible = ref(false);
+  const isHeaderMenuVisible = ref(false);
+  const headerMenuPosition = ref<{ left: number; top: number } | null>(null);
   const getColumnTypeOption = (type?: ColumnType) => resolveColumnTypeOption(type, defaultColumnTypeOptions);
 
   const { pushEntry: pushHistoryEntry, undo, redo } = useEditableTableHistory();
@@ -110,8 +113,26 @@
     { ignore: ["[data-context-menu]"] }
   );
 
+  const {
+    columnRenderEntries,
+    visibleColumnEntries,
+    visibleColumns,
+    gridTemplateColumns,
+    hideColumn,
+    revealHiddenColumns,
+    recordSort
+  } = useEditableTableColumnPreferences<TRow>({
+    columns,
+    indexColumnWidth,
+    storageKey: props.storageKey,
+    rowsLength: computed(() => rows.value.length),
+    onApplySort(column, direction) {
+      sortRowsByColumnInternal(column, direction);
+    }
+  });
+
   const gridStyle = computed(() => ({
-    gridTemplateColumns: `${indexColumnWidth} repeat(${columns.value.length}, minmax(0, 1fr))`
+    gridTemplateColumns: gridTemplateColumns.value
   }));
 
   const selectionRange = computed<TableSelectionRange | null>(() => {
@@ -135,9 +156,9 @@
 
   const selectedColumnIndexes = computed(() => {
     if (!selectionRange.value) return [];
-    if (!columns.value.length) return [];
+    if (!visibleColumns.value.length) return [];
     const { startColumnIndex, endColumnIndex } = selectionRange.value;
-    const maximumColumnIndex = Math.max(0, columns.value.length - 1);
+    const maximumColumnIndex = Math.max(0, visibleColumns.value.length - 1);
     const safeStartColumnIndex = Math.min(Math.max(startColumnIndex, 0), maximumColumnIndex);
     const safeEndColumnIndex = Math.min(Math.max(endColumnIndex, 0), maximumColumnIndex);
     return Array.from({ length: safeEndColumnIndex - safeStartColumnIndex + 1 }, (_, columnOffset) => safeStartColumnIndex + columnOffset);
@@ -147,6 +168,8 @@
     if (columnMenuIndex.value === null) return null;
     return columns.value[columnMenuIndex.value] ?? null;
   });
+
+  const hiddenColumnKeys = computed(() => columns.value.filter((column) => column.hidden).map((column) => String(column.rowKey)));
 
   const draggingColumnClass = computed(() =>
     isDragging.value ? "opacity-30 transition-opacity duration-150 ease-out" : "transition-opacity duration-150 ease-out"
@@ -178,6 +201,7 @@
       [key]: [...existingOptions, option]
     };
   }
+
 
   function assignRowId(row: TRow, preferredId?: string | number) {
     const mappedId = rowIdMap.get(row);
@@ -381,7 +405,7 @@
     const position: CellPosition = { rowIndex, columnIndex: 0 };
     setSelection({ ...position, columnIndex: 0 }, shouldExtendSelection);
     selectionAnchor.value = selectionAnchor.value ? { ...selectionAnchor.value, columnIndex: 0 } : position;
-    selectionEnd.value = { rowIndex, columnIndex: Math.max(0, columns.value.length - 1) };
+    selectionEnd.value = { rowIndex, columnIndex: Math.max(0, visibleColumns.value.length - 1) };
     preserveSelectionOnNextFocus.value = shouldExtendSelection;
   }
 
@@ -421,7 +445,7 @@
     const { rowId, columnKey, previousValue, nextValue, columnIndex } = payload;
     if (Object.is(previousValue, nextValue)) return;
 
-    const column = columns.value[columnIndex];
+    const column = visibleColumnEntries.value[columnIndex]?.column;
     if (column?.type === "select") {
       addSelectOption(column.rowKey as string, nextValue);
     }
@@ -472,7 +496,7 @@
     handleTableKeyDown({
       event,
       rowsLength: rows.value.length,
-      columnsLength: columns.value.length,
+      columnsLength: visibleColumns.value.length,
       selectionState,
       activePosition,
       setActive,
@@ -487,16 +511,24 @@
    */
   function openColumnMenu(columnIndex: number, event: MouseEvent | KeyboardEvent) {
     const headerCellElement = event.currentTarget as HTMLElement | null;
-    const tableRect = tableElement.value?.getBoundingClientRect();
     const headerRect = headerCellElement?.getBoundingClientRect();
-    if (!tableRect || !headerRect) return;
+    if (!headerRect) return;
 
     columnMenuIndex.value = columnIndex;
     columnMenuPosition.value = {
-      left: headerRect.left - tableRect.left + headerRect.width / 2,
-      top: headerRect.bottom - tableRect.top + 8
+      left: headerRect.left + headerRect.width / 2,
+      top: headerRect.bottom + 8
     };
     isColumnMenuVisible.value = true;
+  }
+
+  function openHeaderMenu(event: MouseEvent) {
+    event.preventDefault();
+    headerMenuPosition.value = {
+      left: event.clientX,
+      top: event.clientY
+    };
+    isHeaderMenuVisible.value = true;
   }
 
   /**
@@ -593,6 +625,22 @@
     columnMenuIndex.value = targetIndex;
   }
 
+  function handleHideColumn() {
+    if (columnMenuIndex.value === null) return;
+    hideColumn(columnMenuIndex.value);
+    closeColumnMenu();
+  }
+
+  function toggleColumnVisibility(columnIndex: number) {
+    const column = columns.value[columnIndex];
+    if (!column) return;
+    if (column.hidden) {
+      revealHiddenColumns([String(column.rowKey)]);
+      return;
+    }
+    hideColumn(columnIndex);
+  }
+
   function normalizeForSort(value: unknown, type: ColumnType) {
     if (value === null || value === undefined) {
       return { comparable: null, isNullish: true };
@@ -635,11 +683,7 @@
     return direction === "asc" ? result : -result;
   }
 
-  function sortRows(direction: "asc" | "desc") {
-    if (columnMenuIndex.value === null) return;
-    const column = columns.value[columnMenuIndex.value];
-    if (!column) return;
-
+  function sortRowsByColumnInternal(column: EditableTableColumn<TRow>, direction: "asc" | "desc") {
     const columnKey = column.rowKey as keyof TRow;
     const columnType = column.type ?? "text";
 
@@ -647,9 +691,23 @@
     rows.value = [...rows.value].sort((rowA, rowB) => compareValuesForSort(rowA?.[columnKey], rowB?.[columnKey], columnType, direction));
   }
 
+  function sortRows(direction: "asc" | "desc") {
+    if (columnMenuIndex.value === null) return;
+    const column = columns.value[columnMenuIndex.value];
+    if (!column) return;
+
+    sortRowsByColumn(column, direction);
+  }
+
+  function sortRowsByColumn(column: EditableTableColumn<TRow>, direction: "asc" | "desc", options?: { persist?: boolean }) {
+    sortRowsByColumnInternal(column, direction);
+    if (options?.persist === false) return;
+    recordSort(String(column.rowKey), direction);
+  }
+
   const { handleCopyEvent, handlePasteEvent } = useEditableTableClipboard<TRow>({
     rows,
-    columns,
+    columns: visibleColumns,
     selectionRange,
     selectedRowIndexes,
     selectedColumnIndexes,
@@ -668,7 +726,7 @@
   const {
     dragPreviewStyle,
     draggingColumn,
-    draggingColumnIndex,
+    draggingColumnKey,
     isDragging,
     onPointerDown: onColumnPointerDown
   } = useEditableTableColumnDrag<TRow>({
@@ -689,6 +747,7 @@
     bodyWrapperElement,
     getRowId
   });
+
 
   watch(
     columns,
@@ -735,6 +794,7 @@
     }
   });
 
+
   watch(
     () => rows.value.length,
     () => {
@@ -743,6 +803,14 @@
       }
     }
   );
+
+  watch(visibleColumns, (nextColumns) => {
+    if (!selectionAnchor.value || !selectionEnd.value) return;
+    const maxIndex = Math.max(0, nextColumns.length - 1);
+    selectionAnchor.value = { ...selectionAnchor.value, columnIndex: Math.min(selectionAnchor.value.columnIndex, maxIndex) };
+    selectionEnd.value = { ...selectionEnd.value, columnIndex: Math.min(selectionEnd.value.columnIndex, maxIndex) };
+  });
+
 
   function focusRow(rowIndex: number) {
     if (rowIndex < 0 || rowIndex >= rows.value.length) return;
@@ -753,7 +821,7 @@
 
   function focusAndEditFirstCell(rowIndex: number) {
     focusRow(rowIndex);
-    const firstColumn = columns.value[0];
+    const firstColumn = visibleColumns.value[0];
     const targetRow = rows.value[rowIndex];
     if (!firstColumn || !targetRow) return;
     const rowId = getRowId(targetRow);
@@ -800,6 +868,12 @@
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const draggingRowClass = "bg-blue-50/40 opacity-70";
+  const hiddenIndicatorCell = cva(
+    "flex h-full w-full items-center justify-center gap-1 text-gray-400 select-none bg-slate-50/40 hover:bg-slate-100/60"
+  );
+  const hiddenIndicatorButton = cva(
+    "flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-600"
+  );
   const bodyWrapper = cva("relative flex-1 overflow-auto");
   const addRowButton = cva(
     "col-span-full flex items-center justify-center gap-1 bg-gray-50 py-2 text-sm text-gray-700 transition hover:bg-gray-100 focus:outline-none focus:ring-0"
@@ -820,27 +894,43 @@
     @paste="handlePasteEvent"
     @keydown.capture="onKeyDown"
     @copy.capture="handleCopyEvent">
-    <div ref="headerRowElement" :class="headerRow()" :style="gridStyle">
+    <div ref="headerRowElement" :class="headerRow()" :style="gridStyle" @contextmenu="openHeaderMenu">
       <div :class="indexCell()">#</div>
-      <div
-        v-for="(column, columnIndex) in columns"
-        :key="String(column.rowKey)"
-        :class="[headerCell(), draggingColumnIndex === columnIndex ? draggingColumnClass : '', 'flex items-center gap-2 truncate']"
-        role="button"
-        tabindex="0"
-        :data-column-index="columnIndex"
-        :data-column-key="String(column.rowKey)"
-        @pointerdown="onColumnPointerDown(columnIndex, $event)"
-        @click="onHeaderClick(columnIndex, $event)">
-        <div class="flex min-w-0 items-center gap-2">
-          <FontAwesomeIcon
-            v-if="getColumnTypeOption(column.type).icon !== undefined"
-            :icon="getColumnTypeOption(column.type).icon!"
-            class="text-gray-400"
-            size="xs" />
-          <span class="truncate">{{ column.title }}</span>
+      <template v-for="entry in columnRenderEntries" :key="entry.type === 'column' ? String(entry.column.rowKey) : entry.id">
+        <div
+          v-if="entry.type === 'column'"
+          :class="[
+            headerCell(),
+            draggingColumnKey === String(entry.column.rowKey) ? draggingColumnClass : '',
+            'flex items-center gap-2 truncate'
+          ]"
+          role="button"
+          tabindex="0"
+          :data-column-index="entry.columnIndex"
+          :data-column-key="String(entry.column.rowKey)"
+          @pointerdown="onColumnPointerDown(entry.columnIndex, $event)"
+          @click="onHeaderClick(entry.columnIndex, $event)">
+          <div class="flex min-w-0 items-center gap-2">
+            <FontAwesomeIcon
+              v-if="getColumnTypeOption(entry.column.type).icon !== undefined"
+              :icon="getColumnTypeOption(entry.column.type).icon!"
+              class="text-gray-400"
+              size="xs" />
+            <span class="truncate">{{ entry.column.title }}</span>
+          </div>
         </div>
-      </div>
+        <button
+          v-else
+          type="button"
+          :class="hiddenIndicatorCell()"
+          :title="`Show ${entry.hiddenColumnKeys.length} hidden column${entry.hiddenColumnKeys.length > 1 ? 's' : ''}`"
+          @click="revealHiddenColumns(entry.hiddenColumnKeys)">
+          <span :class="hiddenIndicatorButton()">
+            <FontAwesomeIcon :icon="faEyeSlash" class="h-3 w-3" />
+            <span>{{ entry.hiddenColumnKeys.length }}</span>
+          </span>
+        </button>
+      </template>
     </div>
 
     <div v-if="isDragging && dragPreviewStyle && draggingColumn" class="pointer-events-none absolute z-20" :style="dragPreviewStyle">
@@ -857,12 +947,16 @@
         <div class="px-2 py-2 text-right text-xs font-semibold text-blue-700 bg-blue-50">
           {{ draggingRowIndex + 1 }}
         </div>
-        <div
-          v-for="(column, columnIndex) in columns"
-          :key="`drag-${String(column.rowKey)}-${columnIndex}`"
-          class="px-3 py-2 text-sm text-gray-800 border-l border-blue-100 truncate">
-          {{ formatRowPreviewValue(draggingRow[column.rowKey as keyof TRow], column.type) }}
-        </div>
+        <template v-for="entry in columnRenderEntries" :key="entry.type === 'column' ? `drag-${String(entry.column.rowKey)}` : `drag-${entry.id}`">
+          <div
+            v-if="entry.type === 'column'"
+            class="px-3 py-2 text-sm text-gray-800 border-l border-blue-100 truncate">
+            {{ formatRowPreviewValue(draggingRow[entry.column.rowKey as keyof TRow], entry.column.type) }}
+          </div>
+          <div v-else class="flex items-center justify-center border-l border-blue-100">
+            <span class="h-3 w-px rounded-full bg-blue-100" />
+          </div>
+        </template>
       </div>
     </div>
 
@@ -881,23 +975,27 @@
           @contextmenu="onIndexContextMenu(rowIndex, $event)">
           {{ rowIndex + 1 }}
         </div>
-        <EditableTableCell
-          v-for="(column, columnIndex) in columns"
-          :key="String(column.rowKey)"
-          v-model="rows[rowIndex][column.rowKey as keyof TRow]"
-          :row-id="getRowId(row)"
-          :column-key="column.rowKey"
-          :column-type="column.type"
-          :row-index="rowIndex"
-          :column-index="columnIndex"
-          :row-count="rows.length"
-          :column-count="columns.length"
-          :selection-range="selectionRange"
-          :select-options="selectOptions[String(column.rowKey)] ?? []"
-          :class="draggingColumnIndex === columnIndex ? draggingColumnBodyClass : ''"
-          @cell-select="onCellSelect"
-          @cell-focus="onCellFocus"
-          @cell-commit="onCellCommit" />
+        <template v-for="entry in columnRenderEntries" :key="entry.type === 'column' ? String(entry.column.rowKey) : entry.id">
+          <EditableTableCell
+            v-if="entry.type === 'column'"
+            v-model="rows[rowIndex][entry.column.rowKey as keyof TRow]"
+            :row-id="getRowId(row)"
+            :column-key="entry.column.rowKey"
+            :column-type="entry.column.type"
+            :row-index="rowIndex"
+            :column-index="entry.visibleIndex"
+            :row-count="rows.length"
+            :column-count="visibleColumns.length"
+            :selection-range="selectionRange"
+            :select-options="selectOptions[String(entry.column.rowKey)] ?? []"
+            :class="draggingColumnKey === String(entry.column.rowKey) ? draggingColumnBodyClass : ''"
+            @cell-select="onCellSelect"
+            @cell-focus="onCellFocus"
+            @cell-commit="onCellCommit" />
+          <div v-else :class="hiddenIndicatorCell()">
+            <span class="h-3 w-px rounded-full bg-slate-300/70" />
+          </div>
+        </template>
       </div>
 
       <div v-if="columns.length" class="grid" :style="gridStyle">
@@ -910,7 +1008,7 @@
 
     <EditableTableFooter
       :rows="rows"
-      :columns="columns"
+      :columns="visibleColumns"
       :selection-range="selectionRange"
       :selected-row-indexes="selectedRowIndexes"
       :selected-column-indexes="selectedColumnIndexes" />
@@ -936,11 +1034,21 @@
       :columns-length="columns.length"
       :can-change-type="props.allowColumnTypeChanges"
       @select-type="updateColumnType"
+      @hide-column="handleHideColumn"
       @move-left="moveColumn('left')"
       @move-right="moveColumn('right')"
       @move-first="moveColumn('first')"
       @move-last="moveColumn('last')"
       @sort-ascending="sortRows('asc')"
       @sort-descending="sortRows('desc')" />
+
+    <EditableTableHeaderMenu
+      v-if="headerMenuPosition"
+      v-model="isHeaderMenuVisible"
+      :position="headerMenuPosition"
+      :columns="columns"
+      :hidden-column-keys="hiddenColumnKeys"
+      @toggle-column="toggleColumnVisibility"
+      @show-hidden="() => revealHiddenColumns(hiddenColumnKeys)" />
   </div>
 </template>
