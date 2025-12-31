@@ -62,9 +62,16 @@
         if (option) merged.add(option);
       });
 
-      const manualOptions = manualSelectOptions.value[key] ?? [];
-      manualOptions.forEach((option) => {
-        if (merged.has(option)) merged.add(option);
+      if (column.allowCustomOptions !== false) {
+        const manualOptions = manualSelectOptions.value[key] ?? [];
+        manualOptions.forEach((option) => {
+          if (merged.has(option)) merged.add(option);
+        });
+      }
+
+      const presetOptions = column.options ?? [];
+      presetOptions.forEach((option) => {
+        if (option) merged.add(option);
       });
 
       result[key] = Array.from(merged);
@@ -447,7 +454,9 @@
 
     const column = visibleColumnEntries.value[columnIndex]?.column;
     if (column?.type === "select") {
-      addSelectOption(column.rowKey as string, nextValue);
+      if (column.allowCustomOptions !== false) {
+        addSelectOption(column.rowKey as string, nextValue);
+      }
     }
 
     recordCellChanges(
@@ -716,7 +725,9 @@
       changes.forEach((change) => {
         const column = columns.value.find((col) => String(col.rowKey) === String(change.columnKey));
         if (column?.type === "select") {
-          addSelectOption(column.rowKey as string, change.nextValue);
+          if (column.allowCustomOptions !== false) {
+            addSelectOption(column.rowKey as string, change.nextValue);
+          }
         }
       });
       recordCellChanges(changes, "Paste values");
@@ -980,8 +991,12 @@
             v-if="entry.type === 'column'"
             v-model="rows[rowIndex][entry.column.rowKey as keyof TRow]"
             :row-id="getRowId(row)"
+            :row-data="row"
             :column-key="entry.column.rowKey"
             :column-type="entry.column.type"
+            :column-required="entry.column.required"
+            :column-validation="entry.column.validate"
+            :column-allow-custom-options="entry.column.allowCustomOptions"
             :row-index="rowIndex"
             :column-index="entry.visibleIndex"
             :row-count="rows.length"

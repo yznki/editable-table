@@ -9,13 +9,15 @@
     isEditable?: boolean;
     selectOptions?: string[];
     selectOnFocus?: boolean;
+    allowCustomOptions?: boolean;
   }
 
   const props = withDefaults(defineProps<EditableTableCellEditorProps>(), {
     type: "text",
     isEditable: false,
     selectOptions: () => [],
-    selectOnFocus: true
+    selectOnFocus: true,
+    allowCustomOptions: true
   });
 
   const emit = defineEmits<{
@@ -76,7 +78,7 @@
 <template>
   <div ref="editorRoot" class="w-full h-full" @focusout="emit('blur', $event)">
     <template v-if="type === 'select'">
-      <EditableTableSelectCell v-model="value" :options="selectOptions" :is-editable="isEditable" />
+      <EditableTableSelectCell v-model="value" :options="selectOptions" :is-editable="isEditable" :allow-custom-options="allowCustomOptions" />
     </template>
 
     <template v-else-if="!isEditable">

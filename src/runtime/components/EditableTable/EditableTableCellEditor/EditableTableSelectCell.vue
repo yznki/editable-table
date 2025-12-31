@@ -4,9 +4,10 @@
   interface EditableTableSelectCellProps {
     isEditable?: boolean;
     options?: string[];
+    allowCustomOptions?: boolean;
   }
 
-  const props = withDefaults(defineProps<EditableTableSelectCellProps>(), { isEditable: false, options: () => [] });
+  const props = withDefaults(defineProps<EditableTableSelectCellProps>(), { isEditable: false, options: () => [], allowCustomOptions: true });
 
   const value = defineModel<TValue>();
 
@@ -17,14 +18,17 @@
   const dropdownElement = ref<HTMLElement | null>(null);
   const highlightedIndex = ref<number>(-1);
   const hasTyped = ref(false);
+  const inputValue = ref("");
 
   const displayValue = computed(() => {
     if (value.value === null || value.value === undefined) return "";
     return String(value.value);
   });
 
+  const displayInputValue = computed(() => (props.allowCustomOptions ? displayValue.value : inputValue.value));
+
   const filteredOptions = computed(() => {
-    const query = displayValue.value.trim().toLowerCase();
+    const query = (props.allowCustomOptions ? displayValue.value : inputValue.value).trim().toLowerCase();
     const shouldFilter = hasTyped.value && query.length > 0;
     if (!shouldFilter) return props.options;
     return props.options.filter((option) => option.toLowerCase().includes(query));
@@ -32,11 +36,11 @@
 
   const dropdownEntries = computed(() => {
     const entries = filteredOptions.value.map((option) => ({ label: option, isNew: false }));
-    const input = displayValue.value.trim();
+    const input = (props.allowCustomOptions ? displayValue.value : inputValue.value).trim();
     const normalizedInput = input.toLowerCase();
     const hasInput = hasTyped.value && normalizedInput.length > 0;
 
-    if (hasInput) {
+    if (hasInput && props.allowCustomOptions) {
       const existingIndex = entries.findIndex((entry) => entry.label.toLowerCase() === normalizedInput);
       if (existingIndex !== -1) {
         entries.splice(existingIndex, 1);
@@ -62,6 +66,7 @@
 
   function selectOption(option: string) {
     value.value = option as TValue;
+    inputValue.value = option;
     isDropdownOpen.value = false;
     highlightedIndex.value = -1;
     hasTyped.value = false;
@@ -116,7 +121,13 @@
     highlightedIndex.value = dropdownEntries.value.length ? 0 : -1;
   }
 
-  function handleInput() {
+  function handleInput(event: Event) {
+    const target = event.target as HTMLInputElement | null;
+    const nextValue = target?.value ?? "";
+    inputValue.value = nextValue;
+    if (props.allowCustomOptions) {
+      value.value = nextValue as TValue;
+    }
     hasTyped.value = true;
     openDropdown();
   }
@@ -198,8 +209,10 @@
         isDropdownOpen.value = false;
         highlightedIndex.value = -1;
         hasTyped.value = false;
+        inputValue.value = displayValue.value;
       } else {
         hasTyped.value = false;
+        inputValue.value = displayValue.value;
       }
     },
     { immediate: true }
@@ -226,15 +239,16 @@
         </span>
       </template>
 
-      <template v-else>
-        <input
+    <template v-else>
+      <input
           ref="inputElement"
           type="text"
-          v-model="value"
+          :value="displayInputValue"
+          :readonly="!allowCustomOptions"
           :class="inputClass"
           @focus="openDropdown()"
-          @input="handleInput()"
-          @keydown.escape.stop="isDropdownOpen = false"
+          @input="handleInput"
+          @keydown.escape="isDropdownOpen = false"
           @keydown.down.prevent.stop="moveHighlight('down')"
           @keydown.up.prevent.stop="moveHighlight('up')"
           @keydown.enter.prevent.stop="

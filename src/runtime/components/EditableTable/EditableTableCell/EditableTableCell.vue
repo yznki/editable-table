@@ -22,6 +22,10 @@
     columnKey: TKey;
     columnType?: ColumnType;
     selectOptions?: string[];
+    columnRequired?: boolean;
+    columnValidation?: ((value: unknown, row: TRow) => string | null | undefined | boolean) | Array<(value: unknown, row: TRow) => string | null | undefined | boolean>;
+    columnAllowCustomOptions?: boolean;
+    rowData: TRow;
 
     rowIndex: number;
     columnIndex: number;
@@ -103,9 +107,68 @@
       selected: {
         true: "bg-blue-50/40 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.25)]",
         false: "hover:bg-gray-50"
+      },
+      invalid: {
+        true: "border-red-400 shadow-[inset_0_0_0_1px_rgba(248,113,113,0.65)]",
+        false: ""
       }
     }
   });
+
+  const validationMessage = computed(() => {
+    const currentValue = value.value;
+    const isEmpty =
+      currentValue === null ||
+      currentValue === undefined ||
+      currentValue === "" ||
+      (typeof currentValue === "string" && currentValue.trim() === "");
+
+    if (props.columnRequired && isEmpty) {
+      return "This value is required.";
+    }
+
+    if (!isEmpty) {
+      switch (props.columnType) {
+        case "number": {
+          const numericValue = typeof currentValue === "number" ? currentValue : Number(String(currentValue));
+          if (!Number.isFinite(numericValue)) {
+            return "Enter a valid number.";
+          }
+          break;
+        }
+        case "boolean":
+          if (typeof currentValue !== "boolean" && currentValue !== "true" && currentValue !== "false") {
+            return "Enter a valid boolean.";
+          }
+          break;
+        case "date": {
+          const raw = currentValue instanceof Date ? currentValue.toISOString() : String(currentValue);
+          const parsed = new Date(raw);
+          if (Number.isNaN(parsed.getTime())) {
+            return "Enter a valid date.";
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    const validators = Array.isArray(props.columnValidation) ? props.columnValidation : props.columnValidation ? [props.columnValidation] : [];
+    for (const validator of validators) {
+      const result = validator(currentValue, props.rowData);
+      if (typeof result === "string" && result.trim().length) {
+        return result.trim();
+      }
+      if (result === false) {
+        return "Invalid value.";
+      }
+    }
+
+    return null;
+  });
+
+  const isInvalid = computed(() => validationMessage.value !== null);
 
   function stopRepeat(key: ArrowNavigationKey) {
     const timeoutHandle = repeatTimeoutHandles.get(key);
@@ -264,6 +327,14 @@
     value.value = nextValue;
   }
 
+  function beginEditWithoutValue() {
+    selectOnFocus.value = true;
+    startEditing({
+      rowId: props.rowId,
+      columnKey: String(props.columnKey)
+    });
+  }
+
   function defaultValueForColumn() {
     switch (props.columnType) {
       case "number":
@@ -290,6 +361,11 @@
     if (!shouldStartEditFromKey(event)) return;
 
     event.preventDefault();
+
+    if (props.columnType === "select" && props.columnAllowCustomOptions === false) {
+      beginEditWithoutValue();
+      return;
+    }
 
     if (props.columnType === "boolean") {
       beginEditWithValue((!value.value) as TRow[TKey]);
@@ -406,7 +482,7 @@
   <div
     tabindex="0"
     ref="cellElement"
-    :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected }), !isActive ? 'select-none' : '']"
+    :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected, invalid: isInvalid }), !isActive ? 'select-none' : '', 'group']"
     @mousedown="onMouseDown"
     @keydown="onKeyDown"
     @dblclick="onDblClick">
@@ -414,9 +490,15 @@
       v-model="value"
       :type="columnType"
       :select-options="selectOptions"
+      :allow-custom-options="columnAllowCustomOptions"
       :select-on-focus="selectOnFocus"
       @blur="onBlur"
       class="w-full"
       :is-editable="isActive" />
+    <div
+      v-if="validationMessage"
+      class="pointer-events-none absolute left-2 top-full z-20 mt-1 hidden max-w-[220px] rounded-md border border-red-200 bg-white px-2 py-1 text-xs text-red-600 shadow-sm group-hover:block">
+      {{ validationMessage }}
+    </div>
   </div>
 </template>

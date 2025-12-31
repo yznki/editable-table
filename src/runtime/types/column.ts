@@ -19,6 +19,9 @@ export interface EditableTableColumn<TRow extends Record<string, any> = Record<s
 
   editable?: boolean;
   required?: boolean;
+  options?: string[];
+  allowCustomOptions?: boolean;
+  validate?: ((value: unknown, row: TRow) => string | null | undefined | boolean) | Array<(value: unknown, row: TRow) => string | null | undefined | boolean>;
 
   width?: number | string;
 

@@ -24,12 +24,46 @@
   ];
 
   const columns = ref<EditableTableColumn<MemberRow>[]>([
-    { rowKey: "name", title: "Name", type: "text" },
-    { rowKey: "role", title: "Role", type: "text" },
-    { rowKey: "squad", title: "Squad", type: "select" },
-    { rowKey: "tickets", title: "Open tickets", type: "number" },
+    {
+      rowKey: "name",
+      title: "Name",
+      type: "text",
+      required: true,
+      validate: (value) => (String(value ?? "").trim().length < 2 ? "Name must be at least 2 characters." : null)
+    },
+    {
+      rowKey: "role",
+      title: "Role",
+      type: "select",
+      options: ["Product Designer", "Staff Engineer", "Data Analyst", "Product Manager", "QA Lead", "Ops Engineer", "UX Researcher", "Frontend Engineer"],
+      allowCustomOptions: true,
+      hidden: true
+    },
+    {
+      rowKey: "squad",
+      title: "Squad",
+      type: "select",
+      options: ["Atlas", "Aurora", "Helix", "Nova"],
+      allowCustomOptions: false
+    },
+    {
+      rowKey: "tickets",
+      title: "Open tickets",
+      type: "number",
+      validate: (value) => (Number(value) > 20 ? "Keep ticket load under 20." : null)
+    },
     { rowKey: "active", title: "Active", type: "boolean" },
-    { rowKey: "joinedAt", title: "Joined", type: "date" }
+    {
+      rowKey: "joinedAt",
+      title: "Joined",
+      type: "date",
+      validate: (value) => {
+        const date = new Date(String(value ?? ""));
+        if (Number.isNaN(date.getTime())) return "Enter a valid date.";
+        if (date > new Date()) return "Start date cannot be in the future.";
+        return null;
+      }
+    }
   ]);
 
   const rows = ref<MemberRow[]>(cloneRows(baseRows));
@@ -47,21 +81,36 @@
   const rowsPreview = computed(() => JSON.stringify(rows.value.slice(0, 4), null, 2));
 
   const hotkeys = [
+    { combo: "Type", note: "Start editing immediately based on column type" },
     { combo: "Enter", note: "Start editing; press again to commit and move down" },
     { combo: "Tab / Shift+Tab", note: "Move horizontally and commit the current edit" },
     { combo: "Shift + arrows", note: "Extend selection across rows or columns" },
     { combo: "Cmd/Ctrl + arrows", note: "Jump to the start/end of a row or column" },
+    { combo: "Backspace / Delete", note: "Clear a cell and start editing" },
     { combo: "Cmd/Ctrl + C / V", note: "Copy/paste ranges directly from spreadsheets" },
     { combo: "Cmd/Ctrl + Z / Y", note: "Undo and redo table history" }
   ];
 
   const tips = [
-    "Drag headers to reorder columns; a ghost badge keeps context.",
-    "Click a header to sort; toggle type switching on to see coercion in action.",
-    "Right-click the row number for quick insert, move, or delete.",
-    "Use the Add row button to append a row then start typing immediately.",
-    "Select any number columns to see live sums/averages in the footer.",
-    "Double-click Squad to see the select dropdown; type to add a new squad, use arrows to navigate, Enter to commit."
+    "Drag headers or row numbers to reorder columns and rows.",
+    "Right-click the header row to manage column visibility.",
+    "Look for the tiny eye badge between columns to reveal hidden ones.",
+    "Role is a freeform select; Squad is preset-only.",
+    "Hover red borders to see validation messages.",
+    "Press Esc to cancel an edit and revert.",
+    "Use the Add row button to append a row then start typing immediately."
+  ];
+
+  const featureHighlights = [
+    { title: "Type-to-edit", detail: "Start typing to edit; numbers, booleans, and text are type-aware." },
+    { title: "Row + column drag", detail: "Drag headers or row numbers to reorder instantly." },
+    { title: "Context menus", detail: "Right-click the header row or a row number for actions." },
+    { title: "Visibility controls", detail: "Hide columns and reveal via subtle indicators or header menu." },
+    { title: "Select modes", detail: "Role allows custom entries; Squad is preset-only." },
+    { title: "Validation", detail: "Required fields and custom rules show inline errors." },
+    { title: "Clipboard", detail: "Copy/paste ranges straight to and from spreadsheets." },
+    { title: "History", detail: "Undo and redo with Cmd/Ctrl + Z/Y." },
+    { title: "Persistence", detail: "Column order, visibility, and sort are stored per user." }
   ];
 
   function cloneRows(source: MemberRow[]) {
@@ -144,7 +193,7 @@
         </div>
 
         <div class="border-b border-slate-200/70 bg-linear-to-b from-white to-slate-50/60 px-4 pb-4 pt-3">
-          <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes />
+          <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes storage-key="playground-roster" />
         </div>
 
         <div class="grid gap-3 px-5 py-4 sm:grid-cols-2">
@@ -165,6 +214,25 @@
               <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Sort by Joined →</span>
             </div>
             <div class="px-4 pb-4 text-lg font-semibold text-slate-900">{{ formatDate(newestJoin ?? "") }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-lg ring-1 ring-black/5 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Feature set</p>
+            <h3 class="text-lg font-semibold text-slate-900">Everything enabled in this playground</h3>
+          </div>
+          <span class="rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">Latest</span>
+        </div>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="feature in featureHighlights"
+            :key="feature.title"
+            class="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
+            <p class="text-sm font-semibold text-slate-900">{{ feature.title }}</p>
+            <p class="mt-2 text-xs leading-relaxed text-slate-600">{{ feature.detail }}</p>
           </div>
         </div>
       </section>
