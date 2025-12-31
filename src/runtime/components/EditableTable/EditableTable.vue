@@ -10,6 +10,7 @@
   import { useEditableTableHistory } from "@composables/useEditableTableHistory";
   import { useEditableTableEditing } from "@composables/useEditableTableEditing";
   import { useEditableTableRows } from "@composables/useEditableTableRows";
+  import { useEditableTableRowDrag } from "@composables/useEditableTableRowDrag";
   import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableRowMenu from "./EditableTableRowMenu/EditableTableRowMenu.vue";
   import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
@@ -41,6 +42,7 @@
   const selectionEnd = ref<CellPosition | null>(null);
   const preserveSelectionOnNextFocus = ref(false);
   const shouldBlockHeaderClick = ref(false);
+  const shouldBlockIndexClick = ref(false);
 
   const tableElement = ref<HTMLElement | null>(null);
   const headerRowElement = ref<HTMLElement | null>(null);
@@ -361,6 +363,7 @@
    * @param event - The mouse event.
    */
   function onIndexClick(rowIndex: number, event: MouseEvent) {
+    if (shouldBlockIndexClick.value) return;
     const shouldExtendSelection = event.shiftKey && selectionAnchor.value !== null;
     selectRowRange(rowIndex, shouldExtendSelection);
     clearActive();
@@ -674,6 +677,19 @@
     headerRowElement
   });
 
+  const {
+    dragPreviewStyle: rowDragPreviewStyle,
+    draggingRow,
+    draggingRowIndex,
+    isDragging: isRowDragging,
+    onPointerDown: onRowPointerDown
+  } = useEditableTableRowDrag<TRow>({
+    rows,
+    tableElement,
+    bodyWrapperElement,
+    getRowId
+  });
+
   watch(
     columns,
     () => {
@@ -699,6 +715,23 @@
       });
     } else {
       shouldBlockHeaderClick.value = false;
+    }
+  });
+
+  watch(isRowDragging, (active) => {
+    if (active) {
+      isRowMenuVisible.value = false;
+      rowMenuIndex.value = null;
+      shouldBlockIndexClick.value = true;
+      return;
+    }
+
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        shouldBlockIndexClick.value = false;
+      });
+    } else {
+      shouldBlockIndexClick.value = false;
     }
   });
 
@@ -766,10 +799,17 @@
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
   const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
+  const draggingRowClass = "bg-blue-50/40 opacity-70";
   const bodyWrapper = cva("relative flex-1 overflow-auto");
   const addRowButton = cva(
     "col-span-full flex items-center justify-center gap-1 bg-gray-50 py-2 text-sm text-gray-700 transition hover:bg-gray-100 focus:outline-none focus:ring-0"
   );
+
+  function formatRowPreviewValue(value: unknown, columnType?: ColumnType) {
+    if (value === null || value === undefined || value === "") return "";
+    if (columnType === "boolean") return value ? "true" : "false";
+    return String(value);
+  }
 </script>
 
 <template>
@@ -809,9 +849,36 @@
       </div>
     </div>
 
+    <div
+      v-if="isRowDragging && rowDragPreviewStyle && draggingRowIndex !== null && draggingRow"
+      class="pointer-events-none absolute z-20"
+      :style="rowDragPreviewStyle">
+      <div class="grid overflow-hidden rounded-md border border-blue-200 bg-white shadow-lg ring-2 ring-blue-100" :style="gridStyle">
+        <div class="px-2 py-2 text-right text-xs font-semibold text-blue-700 bg-blue-50">
+          {{ draggingRowIndex + 1 }}
+        </div>
+        <div
+          v-for="(column, columnIndex) in columns"
+          :key="`drag-${String(column.rowKey)}-${columnIndex}`"
+          class="px-3 py-2 text-sm text-gray-800 border-l border-blue-100 truncate">
+          {{ formatRowPreviewValue(draggingRow[column.rowKey as keyof TRow], column.type) }}
+        </div>
+      </div>
+    </div>
+
     <div :class="bodyWrapper()" ref="bodyWrapperElement">
-      <div v-for="(row, rowIndex) in rows" :key="String(getRowId(row))" :class="bodyRow()" :style="gridStyle">
-        <div :class="indexCell()" @click="onIndexClick(rowIndex, $event)" @contextmenu="onIndexContextMenu(rowIndex, $event)">
+      <div
+        v-for="(row, rowIndex) in rows"
+        :key="String(getRowId(row))"
+        :data-row-id="String(getRowId(row))"
+        :data-row-index="rowIndex"
+        :class="[bodyRow(), draggingRowIndex === rowIndex ? draggingRowClass : '']"
+        :style="gridStyle">
+        <div
+          :class="indexCell()"
+          @pointerdown="onRowPointerDown(rowIndex, $event)"
+          @click="onIndexClick(rowIndex, $event)"
+          @contextmenu="onIndexContextMenu(rowIndex, $event)">
           {{ rowIndex + 1 }}
         </div>
         <EditableTableCell

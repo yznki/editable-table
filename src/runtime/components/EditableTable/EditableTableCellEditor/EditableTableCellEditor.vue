@@ -8,9 +8,15 @@
     type?: ColumnType;
     isEditable?: boolean;
     selectOptions?: string[];
+    selectOnFocus?: boolean;
   }
 
-  const props = withDefaults(defineProps<EditableTableCellEditorProps>(), { type: "text", isEditable: false, selectOptions: () => [] });
+  const props = withDefaults(defineProps<EditableTableCellEditorProps>(), {
+    type: "text",
+    isEditable: false,
+    selectOptions: () => [],
+    selectOnFocus: true
+  });
 
   const emit = defineEmits<{
     (event: "blur", e: FocusEvent): void;
@@ -47,6 +53,8 @@
     }
 
     target.focus({ preventScroll: true });
+
+    if (!props.selectOnFocus) return;
 
     if (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio") {
       target.select?.();
@@ -85,7 +93,7 @@
       <input type="checkbox" v-model="value" class="h-4 w-4" />
     </div>
 
-    <input v-else-if="type === 'number'" type="number" v-model.number="value" :class="contentClass({ editable: true })" />
+    <input v-else-if="type === 'number'" type="number" v-model="value" :class="contentClass({ editable: true })" />
 
     <input v-else-if="type === 'date'" type="date" v-model="value" :class="contentClass({ editable: true })" />
 

@@ -65,6 +65,7 @@
   const cellElement = ref<HTMLElement | null>(null);
   const originalValue = ref<TRow[TKey] | null>(null);
   const hasOriginalValue = ref(false);
+  const selectOnFocus = ref(true);
   const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
   const isActive = computed(() =>
@@ -150,6 +151,7 @@
   }
 
   function onDblClick() {
+    selectOnFocus.value = true;
     startEditing({
       rowId: props.rowId,
       columnKey: String(props.columnKey)
@@ -180,12 +182,23 @@
     }
 
     if (active) {
-      originalValue.value = value.value ?? null;
-      hasOriginalValue.value = true;
+      if (!hasOriginalValue.value) {
+        originalValue.value = value.value ?? null;
+        hasOriginalValue.value = true;
+      }
       return;
     }
 
+    selectOnFocus.value = true;
+
     if (hasOriginalValue.value) {
+      if (props.columnType === "number") {
+        const coerced = coerceNumber(value.value);
+        if (!Object.is(value.value, coerced)) {
+          value.value = coerced as TRow[TKey];
+        }
+      }
+
       const previousValue = originalValue.value;
       const nextValue = value.value;
 
@@ -204,6 +217,92 @@
       hasOriginalValue.value = false;
     }
   });
+
+  function coerceNumber(input: unknown) {
+    if (input === null || input === undefined) return null;
+    if (typeof input === "number") return Number.isFinite(input) ? input : null;
+    if (typeof input === "string") {
+      const trimmed = input.trim();
+      if (!trimmed) return null;
+      const numeric = Number(trimmed);
+      return Number.isFinite(numeric) ? numeric : null;
+    }
+    return null;
+  }
+
+  function isTypingKey(event: KeyboardEvent) {
+    if (event.isComposing) return false;
+    if (event.ctrlKey || event.metaKey || event.altKey) return false;
+    if (event.key.length !== 1) return false;
+    return true;
+  }
+
+  function shouldStartEditFromKey(event: KeyboardEvent) {
+    if (!isTypingKey(event)) return false;
+    if (navigationKeys.has(event.key)) return false;
+    if (event.key === "\t" || event.key === "\n") return false;
+
+    if (props.columnType === "boolean") {
+      return event.key === " " || event.code === "Space";
+    }
+
+    if (props.columnType === "number") {
+      return /^[0-9]$/.test(event.key) || event.key === "-" || event.key === ".";
+    }
+
+    return true;
+  }
+
+  function beginEditWithValue(nextValue: TRow[TKey]) {
+    selectOnFocus.value = false;
+    originalValue.value = value.value ?? null;
+    hasOriginalValue.value = true;
+    startEditing({
+      rowId: props.rowId,
+      columnKey: String(props.columnKey)
+    });
+    value.value = nextValue;
+  }
+
+  function defaultValueForColumn() {
+    switch (props.columnType) {
+      case "number":
+        return null;
+      case "boolean":
+        return false;
+      case "date":
+        return "";
+      default:
+        return "";
+    }
+  }
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (!isFocused.value || isActive.value) return;
+
+    if (event.key === "Backspace" || event.key === "Delete") {
+      event.preventDefault();
+      selectOnFocus.value = false;
+      beginEditWithValue(defaultValueForColumn() as TRow[TKey]);
+      return;
+    }
+
+    if (!shouldStartEditFromKey(event)) return;
+
+    event.preventDefault();
+
+    if (props.columnType === "boolean") {
+      beginEditWithValue((!value.value) as TRow[TKey]);
+      return;
+    }
+
+    if (props.columnType === "number") {
+      beginEditWithValue(event.key as TRow[TKey]);
+      return;
+    }
+
+    beginEditWithValue(event.key as TRow[TKey]);
+  }
 
   watch(keys.enter, (pressed) => {
     if (!pressed || !isFocused.value) return;
@@ -309,11 +408,13 @@
     ref="cellElement"
     :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected }), !isActive ? 'select-none' : '']"
     @mousedown="onMouseDown"
+    @keydown="onKeyDown"
     @dblclick="onDblClick">
     <EditableTableCellEditor
       v-model="value"
       :type="columnType"
       :select-options="selectOptions"
+      :select-on-focus="selectOnFocus"
       @blur="onBlur"
       class="w-full"
       :is-editable="isActive" />
