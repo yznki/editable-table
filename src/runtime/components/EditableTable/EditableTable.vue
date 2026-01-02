@@ -2,23 +2,24 @@
   import { computed, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
-  import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
-  import { EditableTableProps } from "@models/table";
-  import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
-  import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
-  import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
-  import { useEditableTableHistory } from "@composables/useEditableTableHistory";
-  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
-  import { useEditableTableRows } from "@composables/useEditableTableRows";
-  import { useEditableTableRowDrag } from "@composables/useEditableTableRowDrag";
-  import { useEditableTableColumnPreferences } from "@composables/useEditableTableColumnPreferences";
+  import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "#editable-table/types/column";
+
+  import { useEditableTableClipboard, type TableSelectionRange } from "#editable-table/composables/useEditableTableClipboard";
+  import { useEditableTableNavigation, type NavigationSelectionState } from "#editable-table/composables/useEditableTableNavigation";
+  import { useEditableTableColumnDrag } from "#editable-table/composables/useEditableTableColumnDrag";
+  import { useEditableTableHistory } from "#editable-table/composables/useEditableTableHistory";
+  import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
+  import { useEditableTableRows } from "#editable-table/composables/useEditableTableRows";
+  import { useEditableTableRowDrag } from "#editable-table/composables/useEditableTableRowDrag";
+  import { useEditableTableColumnPreferences } from "#editable-table/composables/useEditableTableColumnPreferences";
   import EditableTableColumnMenu from "#editable-table/components/EditableTable/EditableTableColumnMenu/EditableTableColumnMenu.vue";
   import EditableTableRowMenu from "#editable-table/components/EditableTable/EditableTableRowMenu/EditableTableRowMenu.vue";
   import EditableTableCell from "#editable-table/components/EditableTable/EditableTableCell/EditableTableCell.vue";
   import EditableTableFooter from "#editable-table/components/EditableTable/EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { faEyeSlash, faPlus } from "@fortawesome/free-solid-svg-icons";
-  import EditableTableHeaderMenu from "@components/EditableTable/EditableTableHeaderMenu.vue";
+  import EditableTableHeaderMenu from "#editable-table/components/EditableTable/EditableTableHeaderMenu.vue";
+  import { EditableTableProps } from "#editable-table/types/table";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -120,23 +121,16 @@
     { ignore: ["[data-context-menu]"] }
   );
 
-  const {
-    columnRenderEntries,
-    visibleColumnEntries,
-    visibleColumns,
-    gridTemplateColumns,
-    hideColumn,
-    revealHiddenColumns,
-    recordSort
-  } = useEditableTableColumnPreferences<TRow>({
-    columns,
-    indexColumnWidth,
-    storageKey: props.storageKey,
-    rowsLength: computed(() => rows.value.length),
-    onApplySort(column, direction) {
-      sortRowsByColumnInternal(column, direction);
-    }
-  });
+  const { columnRenderEntries, visibleColumnEntries, visibleColumns, gridTemplateColumns, hideColumn, revealHiddenColumns, recordSort } =
+    useEditableTableColumnPreferences<TRow>({
+      columns,
+      indexColumnWidth,
+      storageKey: props.storageKey,
+      rowsLength: computed(() => rows.value.length),
+      onApplySort(column, direction) {
+        sortRowsByColumnInternal(column, direction);
+      }
+    });
 
   const gridStyle = computed(() => ({
     gridTemplateColumns: gridTemplateColumns.value
@@ -190,7 +184,10 @@
 
   function normalizeSelectOption(value: unknown) {
     if (value === null || value === undefined) return null;
-    const stringValue = typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : `${value}`;
+    const stringValue =
+      typeof value === "string" ? value
+      : typeof value === "number" || typeof value === "boolean" ? String(value)
+      : `${value}`;
     const trimmed = stringValue.trim();
     return trimmed.length ? trimmed : null;
   }
@@ -208,7 +205,6 @@
       [key]: [...existingOptions, option]
     };
   }
-
 
   function assignRowId(row: TRow, preferredId?: string | number) {
     const mappedId = rowIdMap.get(row);
@@ -759,7 +755,6 @@
     getRowId
   });
 
-
   watch(
     columns,
     () => {
@@ -805,7 +800,6 @@
     }
   });
 
-
   watch(
     () => rows.value.length,
     () => {
@@ -821,7 +815,6 @@
     selectionAnchor.value = { ...selectionAnchor.value, columnIndex: Math.min(selectionAnchor.value.columnIndex, maxIndex) };
     selectionEnd.value = { ...selectionEnd.value, columnIndex: Math.min(selectionEnd.value.columnIndex, maxIndex) };
   });
-
 
   function focusRow(rowIndex: number) {
     if (rowIndex < 0 || rowIndex >= rows.value.length) return;
@@ -958,10 +951,10 @@
         <div class="px-2 py-2 text-right text-xs font-semibold text-blue-700 bg-blue-50">
           {{ draggingRowIndex + 1 }}
         </div>
-        <template v-for="entry in columnRenderEntries" :key="entry.type === 'column' ? `drag-${String(entry.column.rowKey)}` : `drag-${entry.id}`">
-          <div
-            v-if="entry.type === 'column'"
-            class="px-3 py-2 text-sm text-gray-800 border-l border-blue-100 truncate">
+        <template
+          v-for="entry in columnRenderEntries"
+          :key="entry.type === 'column' ? `drag-${String(entry.column.rowKey)}` : `drag-${entry.id}`">
+          <div v-if="entry.type === 'column'" class="px-3 py-2 text-sm text-gray-800 border-l border-blue-100 truncate">
             {{ formatRowPreviewValue(draggingRow[entry.column.rowKey as keyof TRow], entry.column.type) }}
           </div>
           <div v-else class="flex items-center justify-center border-l border-blue-100">

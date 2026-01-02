@@ -4,8 +4,8 @@
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { faArrowDown, faArrowUp, faPlus, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 
-  import ContextMenu from "@components/ContextMenu/ContextMenu.vue";
-  import type { ContextMenuPosition } from "@components/ContextMenu/ContextMenu.vue";
+  import ContextMenu from "#editable-table/components/ContextMenu/ContextMenu.vue";
+  import type { ContextMenuPosition } from "#editable-table/components/ContextMenu/ContextMenu.vue";
 
   interface EditableTableRowMenuProps {
     position: ContextMenuPosition;

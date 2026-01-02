@@ -1,6 +1,6 @@
 <script setup lang="ts">
+  import type { EditableTableColumn } from "#editable-table/types/column";
   import { computed, ref } from "vue";
-  import type { EditableTableColumn } from "@models/column";
 
   type MemberRow = {
     id: number;
@@ -35,7 +35,16 @@
       rowKey: "role",
       title: "Role",
       type: "select",
-      options: ["Product Designer", "Staff Engineer", "Data Analyst", "Product Manager", "QA Lead", "Ops Engineer", "UX Researcher", "Frontend Engineer"],
+      options: [
+        "Product Designer",
+        "Staff Engineer",
+        "Data Analyst",
+        "Product Manager",
+        "QA Lead",
+        "Ops Engineer",
+        "UX Researcher",
+        "Frontend Engineer"
+      ],
       allowCustomOptions: true,
       hidden: true
     },
