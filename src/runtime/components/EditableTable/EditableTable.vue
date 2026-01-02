@@ -2,23 +2,23 @@
   import { computed, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
-  import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "@models/column";
-  import { EditableTableProps } from "@models/table";
-  import { useEditableTableClipboard, type TableSelectionRange } from "@composables/useEditableTableClipboard";
-  import { useEditableTableNavigation, type NavigationSelectionState } from "@composables/useEditableTableNavigation";
-  import { useEditableTableColumnDrag } from "@composables/useEditableTableColumnDrag";
-  import { useEditableTableHistory } from "@composables/useEditableTableHistory";
-  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
-  import { useEditableTableRows } from "@composables/useEditableTableRows";
-  import { useEditableTableRowDrag } from "@composables/useEditableTableRowDrag";
-  import { useEditableTableColumnPreferences } from "@composables/useEditableTableColumnPreferences";
-  import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
-  import EditableTableRowMenu from "./EditableTableRowMenu/EditableTableRowMenu.vue";
-  import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
-  import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
+  import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "#editable-table/types/column";
+  import { EditableTableProps } from "#editable-table/types/table";
+  import { useEditableTableClipboard, type TableSelectionRange } from "#editable-table/composables/useEditableTableClipboard";
+  import { useEditableTableNavigation, type NavigationSelectionState } from "#editable-table/composables/useEditableTableNavigation";
+  import { useEditableTableColumnDrag } from "#editable-table/composables/useEditableTableColumnDrag";
+  import { useEditableTableHistory } from "#editable-table/composables/useEditableTableHistory";
+  import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
+  import { useEditableTableRows } from "#editable-table/composables/useEditableTableRows";
+  import { useEditableTableRowDrag } from "#editable-table/composables/useEditableTableRowDrag";
+  import { useEditableTableColumnPreferences } from "#editable-table/composables/useEditableTableColumnPreferences";
+  import EditableTableColumnMenu from "#editable-table/components/EditableTable/EditableTableColumnMenu/EditableTableColumnMenu.vue";
+  import EditableTableRowMenu from "#editable-table/components/EditableTable/EditableTableRowMenu/EditableTableRowMenu.vue";
+  import EditableTableCell from "#editable-table/components/EditableTable/EditableTableCell/EditableTableCell.vue";
+  import EditableTableFooter from "#editable-table/components/EditableTable/EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { faEyeSlash, faPlus } from "@fortawesome/free-solid-svg-icons";
-  import EditableTableHeaderMenu from "@components/EditableTable/EditableTableHeaderMenu.vue";
+  import EditableTableHeaderMenu from "#editable-table/components/EditableTable/EditableTableHeaderMenu.vue";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {
@@ -873,21 +873,22 @@
     focusAndEditFirstCell(newRowIndex);
   }
 
-  const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
-  const headerRow = cva("relative grid border-b border-gray-300 bg-gray-50 font-medium");
+  const tableRoot = cva("relative w-full h-full text-sm flex flex-col text-grey-800");
+  const headerRow = cva("relative grid border-b border-grey-300 bg-grey-50 font-medium");
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
-  const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
-  const bodyRow = cva("grid border-b border-gray-200");
-  const draggingRowClass = "bg-blue-50/40 opacity-70";
+  const headerIndexCell = cva("px-2 py-2 text-right text-xs text-grey-500 select-none bg-grey-50");
+  const bodyIndexCell = cva("px-2 py-2 text-right text-xs text-grey-500 select-none bg-grey-50");
+  const bodyRow = cva("grid border-b border-grey-200");
+  const draggingRowClass = "bg-accent-50/40 opacity-70";
   const hiddenIndicatorCell = cva(
-    "flex h-full w-full items-center justify-center gap-1 text-gray-400 select-none bg-slate-50/40 hover:bg-slate-100/60"
+    "flex h-full w-full items-center justify-center gap-1 text-grey-400 select-none bg-grey-50/40 hover:bg-grey-100/60"
   );
   const hiddenIndicatorButton = cva(
-    "flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-600"
+    "flex items-center gap-1 rounded-full border border-grey-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-grey-500 shadow-sm transition hover:border-grey-300 hover:text-grey-600"
   );
   const bodyWrapper = cva("relative flex-1 overflow-auto");
   const addRowButton = cva(
-    "col-span-full flex items-center justify-center gap-1 bg-gray-50 py-2 text-sm text-gray-700 transition hover:bg-gray-100 focus:outline-none focus:ring-0"
+    "col-span-full flex items-center justify-center gap-1 bg-grey-50 py-2 text-sm text-grey-700 transition hover:bg-grey-100 focus:outline-none focus:ring-0"
   );
 
   function formatRowPreviewValue(value: unknown, columnType?: ColumnType) {
@@ -906,7 +907,7 @@
     @keydown.capture="onKeyDown"
     @copy.capture="handleCopyEvent">
     <div ref="headerRowElement" :class="headerRow()" :style="gridStyle" @contextmenu="openHeaderMenu">
-      <div :class="indexCell()">#</div>
+      <div :class="headerIndexCell()">#</div>
       <template v-for="entry in columnRenderEntries" :key="entry.type === 'column' ? String(entry.column.rowKey) : entry.id">
         <div
           v-if="entry.type === 'column'"
@@ -925,7 +926,7 @@
             <FontAwesomeIcon
               v-if="getColumnTypeOption(entry.column.type).icon !== undefined"
               :icon="getColumnTypeOption(entry.column.type).icon!"
-              class="text-gray-400"
+              class="text-grey-400"
               size="xs" />
             <span class="truncate">{{ entry.column.title }}</span>
           </div>
@@ -945,7 +946,7 @@
     </div>
 
     <div v-if="isDragging && dragPreviewStyle && draggingColumn" class="pointer-events-none absolute z-20" :style="dragPreviewStyle">
-      <div class="rounded-md border border-blue-200 bg-white px-3 py-2 shadow-lg ring-2 ring-blue-100">
+      <div class="rounded-md border border-accent-200 bg-white px-3 py-2 shadow-lg ring-2 ring-accent-100">
         {{ draggingColumn.title }}
       </div>
     </div>
@@ -954,18 +955,18 @@
       v-if="isRowDragging && rowDragPreviewStyle && draggingRowIndex !== null && draggingRow"
       class="pointer-events-none absolute z-20"
       :style="rowDragPreviewStyle">
-      <div class="grid overflow-hidden rounded-md border border-blue-200 bg-white shadow-lg ring-2 ring-blue-100" :style="gridStyle">
-        <div class="px-2 py-2 text-right text-xs font-semibold text-blue-700 bg-blue-50">
+      <div class="grid overflow-hidden rounded-md border border-accent-200 bg-white shadow-lg ring-2 ring-accent-100" :style="gridStyle">
+        <div class="px-2 py-2 text-right text-xs font-semibold text-accent-200 bg-accent-50">
           {{ draggingRowIndex + 1 }}
         </div>
         <template v-for="entry in columnRenderEntries" :key="entry.type === 'column' ? `drag-${String(entry.column.rowKey)}` : `drag-${entry.id}`">
           <div
             v-if="entry.type === 'column'"
-            class="px-3 py-2 text-sm text-gray-800 border-l border-blue-100 truncate">
+            class="px-3 py-2 text-sm text-grey-800 border-l border-accent-100 truncate">
             {{ formatRowPreviewValue(draggingRow[entry.column.rowKey as keyof TRow], entry.column.type) }}
           </div>
-          <div v-else class="flex items-center justify-center border-l border-blue-100">
-            <span class="h-3 w-px rounded-full bg-blue-100" />
+          <div v-else class="flex items-center justify-center border-l border-accent-100">
+            <span class="h-3 w-px rounded-full bg-accent-100" />
           </div>
         </template>
       </div>
@@ -980,7 +981,7 @@
         :class="[bodyRow(), draggingRowIndex === rowIndex ? draggingRowClass : '']"
         :style="gridStyle">
         <div
-          :class="indexCell()"
+          :class="bodyIndexCell()"
           @pointerdown="onRowPointerDown(rowIndex, $event)"
           @click="onIndexClick(rowIndex, $event)"
           @contextmenu="onIndexContextMenu(rowIndex, $event)">
@@ -1008,14 +1009,14 @@
             @cell-focus="onCellFocus"
             @cell-commit="onCellCommit" />
           <div v-else :class="hiddenIndicatorCell()">
-            <span class="h-3 w-px rounded-full bg-slate-300/70" />
+            <span class="h-3 w-px rounded-full bg-grey-300/70" />
           </div>
         </template>
       </div>
 
       <div v-if="columns.length" class="grid" :style="gridStyle">
         <button type="button" :class="addRowButton()" style="grid-column: 1 / -1" @click="handleAppendRow">
-          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-600" size="xs" />
+          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-grey-600" size="xs" />
           <span class="text-xs">Add row</span>
         </button>
       </div>

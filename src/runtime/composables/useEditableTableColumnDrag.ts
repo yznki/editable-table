@@ -1,6 +1,6 @@
 import { computed, onBeforeUnmount, ref, watch, type Ref } from "vue";
 import { useEventListener, useMagicKeys } from "@vueuse/core";
-import { EditableTableColumn } from "@models/column";
+import { EditableTableColumn } from "#editable-table/types/column";
 
 interface ColumnDragOptions<TRow extends Record<string, any>> {
   columns: Ref<EditableTableColumn<TRow>[]>;

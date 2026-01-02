@@ -3,10 +3,10 @@
   import { useMagicKeys } from "@vueuse/core";
   import { cva } from "class-variance-authority";
 
-  import EditableTableCellEditor from "@components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
-  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
-  import { useEditableTableNavigation } from "@composables/useEditableTableNavigation";
-  import { ColumnType } from "@models/column";
+  import EditableTableCellEditor from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
+  import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
+  import { useEditableTableNavigation } from "#editable-table/composables/useEditableTableNavigation";
+  import { ColumnType } from "#editable-table/types/column";
 
   interface SelectionRange {
     startRowIndex: number;
@@ -97,19 +97,19 @@
   const cellClass = cva("relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent", {
     variants: {
       active: {
-        true: "bg-blue-50/70",
+        true: "bg-accent-50/70",
         false: ""
       },
       focused: {
-        true: "border-blue-500 shadow-[inset_0_0_0_2px_rgba(37,99,235,0.45)]",
-        false: "hover:bg-gray-50"
+        true: "border-accent-100 shadow-[inset_0_0_0_2px_rgba(var(--color-accent-100),0.45)]",
+        false: "hover:bg-grey-50"
       },
       selected: {
-        true: "bg-blue-50/40 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.25)]",
-        false: "hover:bg-gray-50"
+        true: "bg-accent-50/40 shadow-[inset_0_0_0_1px_rgba(var(--color-accent-100),0.25)]",
+        false: "hover:bg-grey-50"
       },
       invalid: {
-        true: "border-red-400 shadow-[inset_0_0_0_1px_rgba(248,113,113,0.65)]",
+        true: "border-error-100 shadow-[inset_0_0_0_1px_rgba(205,0,47,0.45)]",
         false: ""
       }
     }
@@ -497,7 +497,7 @@
       :is-editable="isActive" />
     <div
       v-if="validationMessage"
-      class="pointer-events-none absolute left-2 top-full z-20 mt-1 hidden max-w-[220px] rounded-md border border-red-200 bg-white px-2 py-1 text-xs text-red-600 shadow-sm group-hover:block">
+      class="pointer-events-none absolute left-2 top-full z-20 mt-1 hidden max-w-[220px] rounded-md border border-error-200 bg-white px-2 py-1 text-xs text-error-100 shadow-sm group-hover:block">
       {{ validationMessage }}
     </div>
   </div>

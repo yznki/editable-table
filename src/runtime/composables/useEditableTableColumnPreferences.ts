@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
-import type { ColumnType, EditableTableColumn } from "@models/column";
+import type { ColumnType, EditableTableColumn } from "#editable-table/types/column";
 
 export type ColumnRenderEntry<TRow extends Record<string, any>> =
   | { type: "column"; column: EditableTableColumn<TRow>; columnIndex: number; visibleIndex: number }
