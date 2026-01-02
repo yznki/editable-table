@@ -12,10 +12,10 @@
   import { useEditableTableRows } from "@composables/useEditableTableRows";
   import { useEditableTableRowDrag } from "@composables/useEditableTableRowDrag";
   import { useEditableTableColumnPreferences } from "@composables/useEditableTableColumnPreferences";
-  import EditableTableColumnMenu from "./EditableTableColumnMenu/EditableTableColumnMenu.vue";
-  import EditableTableRowMenu from "./EditableTableRowMenu/EditableTableRowMenu.vue";
-  import EditableTableCell from "./EditableTableCell/EditableTableCell.vue";
-  import EditableTableFooter from "./EditableTableFooter/EditableTableFooter.vue";
+  import EditableTableColumnMenu from "#editable-table/components/EditableTable/EditableTableColumnMenu/EditableTableColumnMenu.vue";
+  import EditableTableRowMenu from "#editable-table/components/EditableTable/EditableTableRowMenu/EditableTableRowMenu.vue";
+  import EditableTableCell from "#editable-table/components/EditableTable/EditableTableCell/EditableTableCell.vue";
+  import EditableTableFooter from "#editable-table/components/EditableTable/EditableTableFooter/EditableTableFooter.vue";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { faEyeSlash, faPlus } from "@fortawesome/free-solid-svg-icons";
   import EditableTableHeaderMenu from "@components/EditableTable/EditableTableHeaderMenu.vue";

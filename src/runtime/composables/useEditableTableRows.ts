@@ -1,6 +1,6 @@
 import { ref, type Ref } from "vue";
 import type { EditableTableColumn } from "@models/column";
-import type { TableHistoryEntry } from "./useEditableTableHistory";
+import type { TableHistoryEntry } from "#editable-table/composables/useEditableTableHistory";
 
 type RowMenuPosition = { left: number; top: number };
 

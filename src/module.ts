@@ -1,4 +1,4 @@
-import { defineNuxtModule, createResolver, addImportsDir, addComponentsDir } from "@nuxt/kit";
+import { defineNuxtModule, createResolver, addImportsDir, addComponentsDir, addAlias } from "@nuxt/kit";
 
 export interface ModuleOptions {}
 
@@ -16,11 +16,14 @@ export default defineNuxtModule<ModuleOptions>({
     /**
      * Runtime alias (for explicit imports & types)
      */
-    nuxt.options.alias ||= {};
+    const runtimeDir = resolver.resolve("./runtime");
 
-    nuxt.options.alias["@components"] = resolver.resolve("./runtime/components");
-    nuxt.options.alias["@composables"] = resolver.resolve("./runtime/composables");
-    nuxt.options.alias["@models"] = resolver.resolve("./runtime/types");
+    addAlias({
+      "#editable-table": runtimeDir,
+      "#editable-table/components": resolver.resolve("./runtime/components"),
+      "#editable-table/composables": resolver.resolve("./runtime/composables"),
+      "#editable-table/types": resolver.resolve("./runtime/types")
+    });
 
     /**
      * Auto-import composables
