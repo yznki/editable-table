@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="TValue extends string | number | boolean">
   import { nextTick, onMounted, ref, watch } from "vue";
-  import { ColumnType } from "@models/column";
+  import { ColumnType } from "#editable-table/types/column";
   import { cva } from "class-variance-authority";
-  import EditableTableSelectCell from "./EditableTableSelectCell.vue";
+  import EditableTableSelectCell from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableSelectCell.vue";
 
   export interface EditableTableCellEditorProps {
     type?: ColumnType;
@@ -32,7 +32,7 @@
     variants: {
       editable: {
         true: "select-text",
-        false: "select-none text-gray-800"
+        false: "select-none text-grey-800"
       }
     },
     defaultVariants: {

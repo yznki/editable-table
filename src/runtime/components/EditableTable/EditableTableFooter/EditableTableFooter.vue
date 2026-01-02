@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { EditableTableColumn } from "@models/column";
+  import { EditableTableColumn } from "#editable-table/types/column";
   import { cva } from "class-variance-authority";
   import { computed, ref } from "vue";
 
@@ -24,10 +24,10 @@
 
   const props = defineProps<EditableTableFooterProps>();
 
-  const footerRow = cva("sticky bottom-0 z-10 border-t border-gray-200 bg-white/95 backdrop-blur flex justify-end");
-  const footerContent = cva("flex items-center justify-end gap-3 px-3 py-2 text-xs text-gray-600");
-  const footerStat = cva("flex items-center gap-1 text-gray-700");
-  const footerSelect = cva("border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400");
+  const footerRow = cva("sticky bottom-0 z-10 border-t border-grey-200 bg-white/95 backdrop-blur flex justify-end");
+  const footerContent = cva("flex items-center justify-end gap-3 px-3 py-2 text-xs text-grey-600");
+  const footerStat = cva("flex items-center gap-1 text-grey-700");
+  const footerSelect = cva("border border-grey-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-accent-100");
 
   const numericStats = computed(() => {
     if (!props.selectionRange) return [];
@@ -80,7 +80,7 @@
 <template>
   <div v-if="numericStats.length" :class="footerRow()">
     <div :class="footerContent()">
-      <label class="flex items-center gap-1 text-gray-500">
+      <label class="flex items-center gap-1 text-grey-500">
         <select v-model="selectedStat" :class="footerSelect()">
           <option v-for="option in statOptions" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -89,7 +89,7 @@
       </label>
       <span v-for="statistic in numericStats" :key="statistic.key" :class="footerStat()">
         {{ statistic.title }}:
-        <strong class="font-semibold text-gray-900">{{ statistic.value }}</strong>
+        <strong class="font-semibold text-grey-900">{{ statistic.value }}</strong>
       </span>
     </div>
   </div>

@@ -17,10 +17,7 @@ export default defineNuxtModule<ModuleOptions>({
      * Runtime alias (for explicit imports & types)
      */
     nuxt.options.alias ||= {};
-
-    nuxt.options.alias["@components"] = resolver.resolve("./runtime/components");
-    nuxt.options.alias["@composables"] = resolver.resolve("./runtime/composables");
-    nuxt.options.alias["@models"] = resolver.resolve("./runtime/types");
+    nuxt.options.alias["#editable-table"] = resolver.resolve("./runtime");
 
     /**
      * Auto-import composables
@@ -39,19 +36,5 @@ export default defineNuxtModule<ModuleOptions>({
       pathPrefix: false
     });
 
-    /**
-     * Tailwind (Vite plugin)
-     */
-    const tailwindcss = (await import("@tailwindcss/vite")).default;
-
-    nuxt.options.vite ||= {};
-    nuxt.options.vite.plugins ||= [];
-    nuxt.options.vite.plugins.push(tailwindcss());
-
-    /**
-     * Tailwind base styles
-     */
-    nuxt.options.css ||= [];
-    nuxt.options.css.push(resolver.resolve("./runtime/tailwind.css"));
   }
 });

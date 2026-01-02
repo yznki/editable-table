@@ -1,0 +1,36 @@
+@import url("themes/lost.scss");
+@import url("themes/valibridge.scss");
+@import url("themes/tdex.scss");
+@import url("extensions/scrollbar.scss");
+@import url("extensions/editor.scss");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  @font-face {
+    font-family: "Source Sans 3";
+    font-style: normal;
+    font-weight: 100 1000;
+    font-display: swap;
+    src: url("../fonts/Source_Sans_3/SourceSans3-VariableFont_wght.ttf");
+  }
+
+  :root {
+    --color-primary-100: 155, 195, 183;
+    --color-primary-200: 94, 162, 144;
+    --color-primary-300: 85, 146, 130;
+    --color-secondary-100: 108, 117, 125;
+    --color-secondary-200: 90, 98, 104;
+    --color-secondary-300: 84, 91, 98;
+    --color-tertiary-100: 141, 135, 134;
+    --color-tertiary-200: 100, 79, 84;
+    --color-tertiary-300: 60, 58, 57;
+    --color-accent-50: 108, 155, 209;
+    --color-accent-100: 65, 111, 164;
+    --color-accent-200: 50, 75, 115;
+
+    --background-color-data-grid-header: var(--color-accent-100);
+    --background-color-data-grid-header-separator: var(--color-accent-200);
+  }
+}
