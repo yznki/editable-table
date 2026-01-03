@@ -64,14 +64,6 @@
     { immediate: true }
   );
 
-  watch(
-    [rows, columns],
-    () => {
-      syncTableValidity();
-    },
-    { immediate: true }
-  );
-
   const selectOptions = computed(() => {
     const result: Record<string, string[]> = {};
 
@@ -219,11 +211,7 @@
   }
 
   function getValidationMessage(value: unknown, column: EditableTableColumn<TRow>, row: TRow) {
-    const isEmpty =
-      value === null ||
-      value === undefined ||
-      value === "" ||
-      (typeof value === "string" && value.trim() === "");
+    const isEmpty = value === null || value === undefined || value === "" || (typeof value === "string" && value.trim() === "");
 
     if (column.required && isEmpty) {
       return "This value is required.";
@@ -283,6 +271,20 @@
   function getCellKey(rowId: string | number, columnKey: string | number) {
     return `${rowId}::${String(columnKey)}`;
   }
+
+  /**
+   * Gets the unique identifier for a given row.
+   * @param row - The row object.
+   */
+  const getRowId = (row: TRow) => assignRowId(row);
+
+  watch(
+    [rows, columns],
+    () => {
+      syncTableValidity();
+    },
+    { immediate: true }
+  );
 
   function syncTableValidity() {
     if (!columns.value.length || !rows.value.length) {
@@ -376,12 +378,6 @@
     assignRowId(clonedRow, rowId);
     return clonedRow;
   }
-
-  /**
-   * Gets the unique identifier for a given row.
-   * @param row - The row object.
-   */
-  const getRowId = (row: TRow) => assignRowId(row);
 
   function applyCellChanges(changes: CellChange[], direction: "undo" | "redo") {
     if (!changes.length) return;
