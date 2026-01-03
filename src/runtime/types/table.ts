@@ -5,6 +5,7 @@ export type TableRow<T extends Record<string, any> = Record<string, any>> = T;
 export interface EditableTableProps<TRow extends Record<string, any> = Record<string, any>> {
   modelValue: TRow[];
   columns: EditableTableColumn<TRow>[];
+  isValid?: boolean;
 
   allowColumnTypeChanges?: boolean;
   storageKey?: string;

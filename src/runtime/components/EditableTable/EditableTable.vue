@@ -32,6 +32,7 @@
 
   const rows = defineModel<TRow[]>({ default: () => [] });
   const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [] });
+  const isValid = defineModel<boolean>("isValid", { default: true });
 
   const ROW_ID_SYMBOL = Symbol("editable-table-row-id");
   let rowIdCounter = 1;
@@ -50,6 +51,27 @@
   const headerRowElement = ref<HTMLElement | null>(null);
   const bodyWrapperElement = ref<HTMLElement | null>(null);
   const manualSelectOptions = ref<Record<string, string[]>>({});
+  const invalidCellKeys = ref<Set<string>>(new Set());
+  const isTableValid = computed(() => invalidCellKeys.value.size === 0);
+
+  watch(
+    isTableValid,
+    (nextValue) => {
+      if (isValid.value !== nextValue) {
+        isValid.value = nextValue;
+      }
+    },
+    { immediate: true }
+  );
+
+  watch(
+    [rows, columns],
+    () => {
+      syncTableValidity();
+    },
+    { immediate: true }
+  );
+
   const selectOptions = computed(() => {
     const result: Record<string, string[]> = {};
 
@@ -190,6 +212,113 @@
       : `${value}`;
     const trimmed = stringValue.trim();
     return trimmed.length ? trimmed : null;
+  }
+
+  function isDateValue(input: unknown): input is Date {
+    return typeof input === "object" && input !== null && input instanceof Date;
+  }
+
+  function getValidationMessage(value: unknown, column: EditableTableColumn<TRow>, row: TRow) {
+    const isEmpty =
+      value === null ||
+      value === undefined ||
+      value === "" ||
+      (typeof value === "string" && value.trim() === "");
+
+    if (column.required && isEmpty) {
+      return "This value is required.";
+    }
+
+    if (!isEmpty) {
+      switch (column.type) {
+        case "number": {
+          const numericValue = typeof value === "number" ? value : Number(String(value));
+          if (!Number.isFinite(numericValue)) {
+            return "Enter a valid number.";
+          }
+          break;
+        }
+        case "boolean":
+          if (typeof value !== "boolean" && value !== "true" && value !== "false") {
+            return "Enter a valid boolean.";
+          }
+          break;
+        case "date": {
+          if (isDateValue(value)) {
+            if (Number.isNaN(value.getTime())) {
+              return "Enter a valid date.";
+            }
+            break;
+          }
+
+          const parsed = new Date(String(value));
+          if (Number.isNaN(parsed.getTime())) {
+            return "Enter a valid date.";
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    const validators =
+      Array.isArray(column.validate) ? column.validate
+      : column.validate ? [column.validate]
+      : [];
+
+    for (const validator of validators) {
+      const result = validator(value, row);
+      if (typeof result === "string" && result.trim().length) {
+        return result.trim();
+      }
+      if (result === false) {
+        return "Invalid value.";
+      }
+    }
+
+    return null;
+  }
+
+  function getCellKey(rowId: string | number, columnKey: string | number) {
+    return `${rowId}::${String(columnKey)}`;
+  }
+
+  function syncTableValidity() {
+    if (!columns.value.length || !rows.value.length) {
+      invalidCellKeys.value = new Set();
+      return;
+    }
+
+    const nextInvalidKeys = new Set<string>();
+
+    rows.value.forEach((row) => {
+      const rowId = getRowId(row);
+      columns.value.forEach((column) => {
+        const value = row[column.rowKey as keyof TRow];
+        const message = getValidationMessage(value, column, row);
+        if (message) {
+          nextInvalidKeys.add(getCellKey(rowId, String(column.rowKey)));
+        }
+      });
+    });
+
+    invalidCellKeys.value = nextInvalidKeys;
+  }
+
+  function updateCellValidity(rowId: string | number, column: EditableTableColumn<TRow>, row: TRow) {
+    const value = row[column.rowKey as keyof TRow];
+    const message = getValidationMessage(value, column, row);
+    const cellKey = getCellKey(rowId, String(column.rowKey));
+    const nextInvalidKeys = new Set(invalidCellKeys.value);
+
+    if (message) {
+      nextInvalidKeys.add(cellKey);
+    } else {
+      nextInvalidKeys.delete(cellKey);
+    }
+
+    invalidCellKeys.value = nextInvalidKeys;
   }
 
   function addSelectOption(columnKey: string | number, value: unknown) {
@@ -466,6 +595,13 @@
       ],
       `Edit ${String(columnKey)}`
     );
+
+    if (column) {
+      const row = rows.value[payload.rowIndex];
+      if (row) {
+        updateCellValidity(rowId, column, row);
+      }
+    }
   }
 
   function isEditableEventTarget(event: KeyboardEvent) {
@@ -718,11 +854,23 @@
     selectedColumnIndexes,
     getRowId,
     onCellsChanged(changes) {
+      const rowsById = new Map<string | number, TRow>();
+      rows.value.forEach((row) => {
+        rowsById.set(getRowId(row), row);
+      });
+
       changes.forEach((change) => {
         const column = columns.value.find((col) => String(col.rowKey) === String(change.columnKey));
         if (column?.type === "select") {
           if (column.allowCustomOptions !== false) {
             addSelectOption(column.rowKey as string, change.nextValue);
+          }
+        }
+
+        if (column) {
+          const row = rowsById.get(change.rowId);
+          if (row) {
+            updateCellValidity(change.rowId, column, row);
           }
         }
       });

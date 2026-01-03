@@ -75,13 +75,15 @@
       })
       .filter((statistic): statistic is { key: string; title: string; value: number | string } => Boolean(statistic));
   });
+
+  const hasStats = computed(() => numericStats.value.length > 0);
 </script>
 
 <template>
-  <div v-if="numericStats.length" :class="footerRow()">
-    <div :class="footerContent()">
+  <div :class="footerRow()">
+    <div :class="[footerContent(), hasStats ? '' : 'invisible pointer-events-none']" :aria-hidden="!hasStats">
       <label class="flex items-center gap-1 text-gray-500">
-        <select v-model="selectedStat" :class="footerSelect()">
+        <select v-model="selectedStat" :class="footerSelect()" :disabled="!hasStats">
           <option v-for="option in statOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>

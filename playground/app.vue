@@ -89,6 +89,13 @@
   });
   const rowsPreview = computed(() => JSON.stringify(rows.value.slice(0, 4), null, 2));
 
+  const validationExamples = [
+    { title: "Required values", detail: "Blank names highlight as invalid." },
+    { title: "Custom rules", detail: "Short names and ticket counts over 20 show messages." },
+    { title: "Type checks", detail: "Non-numeric ticket values are rejected." },
+    { title: "Dates", detail: "Invalid or future start dates trigger errors." }
+  ];
+
   const hotkeys = [
     { combo: "Type", note: "Start editing immediately based on column type" },
     { combo: "Enter", note: "Start editing; press again to commit and move down" },
@@ -145,6 +152,20 @@
     ];
   }
 
+  function applyValidationExamples() {
+    const exampleRows = cloneRows(baseRows);
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 21);
+
+    if (exampleRows[0]) exampleRows[0].name = "A";
+    if (exampleRows[1]) exampleRows[1].tickets = 27;
+    if (exampleRows[2]) exampleRows[2].joinedAt = futureDate.toISOString().slice(0, 10);
+    if (exampleRows[3]) exampleRows[3].name = "";
+    if (exampleRows[4]) exampleRows[4].joinedAt = "not-a-date";
+
+    rows.value = exampleRows;
+  }
+
   function formatDate(date: string) {
     if (!date) return "—";
     const parsed = new Date(date);
@@ -194,6 +215,12 @@
             </button>
             <button
               type="button"
+              class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow-md"
+              @click="applyValidationExamples">
+              Show validation errors
+            </button>
+            <button
+              type="button"
               class="rounded-full bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-px hover:shadow-lg"
               @click="addSampleRow">
               Add sample row
@@ -203,6 +230,23 @@
 
         <div class="border-b border-slate-200/70 bg-linear-to-b from-white to-slate-50/60 px-4 pb-4 pt-3">
           <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes storage-key="playground-roster" />
+        </div>
+
+        <div class="border-b border-slate-200/70 bg-white/80 px-5 py-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="space-y-1">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Validation walkthrough</p>
+              <p class="text-sm text-slate-600">
+                Load the validation errors and hover the red borders in the table to see each rule in action.
+              </p>
+            </div>
+            <div class="grid gap-2 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
+              <div v-for="example in validationExamples" :key="example.title" class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-slate-200">
+                <p class="text-sm font-semibold text-slate-900">{{ example.title }}</p>
+                <p class="mt-1 leading-relaxed text-slate-600">{{ example.detail }}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid gap-3 px-5 py-4 sm:grid-cols-2">
