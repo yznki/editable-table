@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, any> = Record<string, any>">
-  import { EditableTableColumn } from "@models/column";
+  import { EditableTableColumn } from "#editable-table/types/column";
   import { cva } from "class-variance-authority";
   import { computed, ref } from "vue";
 

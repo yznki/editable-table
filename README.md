@@ -34,15 +34,15 @@ export default defineNuxtConfig({
 The module:
 
 - Registers the `<EditableTable />` component globally.
-- Auto-imports composables under `@composables`.
-- Exposes types under `@models`.
+- Auto-imports composables under `#editable-table/composables`.
+- Exposes types under `#editable-table/types`.
 - Injects the Tailwind plugin and base styles for the table UI.
 
 ## Quick start
 
 ```vue
 <script setup lang="ts">
-  import type { EditableTableColumn } from "@models/column";
+  import type { EditableTableColumn } from "#editable-table/types/column";
 
   type PersonRow = {
     id: number;

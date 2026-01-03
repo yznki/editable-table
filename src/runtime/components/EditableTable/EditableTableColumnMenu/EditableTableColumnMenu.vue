@@ -17,9 +17,9 @@
     type EditableTableColumn,
     defaultColumnTypeOptions,
     resolveColumnTypeOption
-  } from "@models/column";
+  } from "#editable-table/types/column";
   import { useMagicKeys } from "@vueuse/core";
-  import ContextMenu, { type ContextMenuPosition } from "@components/ContextMenu/ContextMenu.vue";
+  import ContextMenu, { type ContextMenuPosition } from "#editable-table/components/ContextMenu/ContextMenu.vue";
 
   interface EditableTableColumnMenuProps {
     column: EditableTableColumn<TRow>;

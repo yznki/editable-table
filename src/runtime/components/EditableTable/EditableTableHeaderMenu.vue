@@ -3,8 +3,8 @@
   import { cva } from "class-variance-authority";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
-  import type { EditableTableColumn } from "@models/column";
-  import ContextMenu from "@components/ContextMenu/ContextMenu.vue";
+  import type { EditableTableColumn } from "#editable-table/types/column";
+  import ContextMenu from "#editable-table/components/ContextMenu/ContextMenu.vue";
 
   interface EditableTableHeaderMenuProps {
     columns: EditableTableColumn<TRow>[];
@@ -105,7 +105,13 @@
 </script>
 
 <template>
-  <ContextMenu v-model="isVisible" :position="props.position" alignment="start" vertical-alignment="none" transition="fade" clamp-to-viewport>
+  <ContextMenu
+    v-model="isVisible"
+    :position="props.position"
+    alignment="start"
+    vertical-alignment="none"
+    transition="fade"
+    clamp-to-viewport>
     <div class="space-y-1 min-w-64 max-w-xs">
       <div :class="headerMenuTitle()">Columns</div>
       <button
@@ -128,10 +134,7 @@
         vertical-alignment="none"
         transition="fade"
         clamp-to-viewport>
-        <div
-          class="space-y-1 min-w-64 max-w-xs"
-          @mouseenter="clearVisibilityCloseTimeout"
-          @mouseleave="scheduleCloseVisibilityMenu">
+        <div class="space-y-1 min-w-64 max-w-xs" @mouseenter="clearVisibilityCloseTimeout" @mouseleave="scheduleCloseVisibilityMenu">
           <div :class="headerMenuTitle()">Visibility</div>
           <button
             v-for="(column, columnIndex) in props.columns"

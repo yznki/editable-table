@@ -3,10 +3,10 @@
   import { useMagicKeys } from "@vueuse/core";
   import { cva } from "class-variance-authority";
 
-  import EditableTableCellEditor from "@components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
-  import { useEditableTableEditing } from "@composables/useEditableTableEditing";
-  import { useEditableTableNavigation } from "@composables/useEditableTableNavigation";
-  import { ColumnType } from "@models/column";
+  import EditableTableCellEditor from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
+  import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
+  import { useEditableTableNavigation } from "#editable-table/composables/useEditableTableNavigation";
+  import { ColumnType } from "#editable-table/types/column";
 
   interface SelectionRange {
     startRowIndex: number;
@@ -23,7 +23,9 @@
     columnType?: ColumnType;
     selectOptions?: string[];
     columnRequired?: boolean;
-    columnValidation?: ((value: unknown, row: TRow) => string | null | undefined | boolean) | Array<(value: unknown, row: TRow) => string | null | undefined | boolean>;
+    columnValidation?:
+      | ((value: unknown, row: TRow) => string | null | undefined | boolean)
+      | Array<(value: unknown, row: TRow) => string | null | undefined | boolean>;
     columnAllowCustomOptions?: boolean;
     rowData: TRow;
 
@@ -115,6 +117,10 @@
     }
   });
 
+  function isDateValue(input: unknown): input is Date {
+    return typeof input === "object" && input !== null && input instanceof Date;
+  }
+
   const validationMessage = computed(() => {
     const currentValue = value.value;
     const isEmpty =
@@ -142,8 +148,14 @@
           }
           break;
         case "date": {
-          const raw = currentValue instanceof Date ? currentValue.toISOString() : String(currentValue);
-          const parsed = new Date(raw);
+          if (isDateValue(currentValue)) {
+            if (Number.isNaN(currentValue.getTime())) {
+              return "Enter a valid date.";
+            }
+            break;
+          }
+
+          const parsed = new Date(String(currentValue));
           if (Number.isNaN(parsed.getTime())) {
             return "Enter a valid date.";
           }
@@ -154,7 +166,10 @@
       }
     }
 
-    const validators = Array.isArray(props.columnValidation) ? props.columnValidation : props.columnValidation ? [props.columnValidation] : [];
+    const validators =
+      Array.isArray(props.columnValidation) ? props.columnValidation
+      : props.columnValidation ? [props.columnValidation]
+      : [];
     for (const validator of validators) {
       const result = validator(currentValue, props.rowData);
       if (typeof result === "string" && result.trim().length) {
@@ -368,7 +383,7 @@
     }
 
     if (props.columnType === "boolean") {
-      beginEditWithValue((!value.value) as TRow[TKey]);
+      beginEditWithValue(!value.value as TRow[TKey]);
       return;
     }
 
@@ -482,7 +497,11 @@
   <div
     tabindex="0"
     ref="cellElement"
-    :class="[cellClass({ active: isActive, focused: isFocused, selected: isSelected, invalid: isInvalid }), !isActive ? 'select-none' : '', 'group']"
+    :class="[
+      cellClass({ active: isActive, focused: isFocused, selected: isSelected, invalid: isInvalid }),
+      !isActive ? 'select-none' : '',
+      'group'
+    ]"
     @mousedown="onMouseDown"
     @keydown="onKeyDown"
     @dblclick="onDblClick">
@@ -497,7 +516,7 @@
       :is-editable="isActive" />
     <div
       v-if="validationMessage"
-      class="pointer-events-none absolute left-2 top-full z-20 mt-1 hidden max-w-[220px] rounded-md border border-red-200 bg-white px-2 py-1 text-xs text-red-600 shadow-sm group-hover:block">
+      class="pointer-events-none absolute left-2 top-full z-20 mt-1 hidden max-w-55 rounded-md border border-red-200 bg-white px-2 py-1 text-xs text-red-600 shadow-sm group-hover:block">
       {{ validationMessage }}
     </div>
   </div>

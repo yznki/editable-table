@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="TValue extends string | number | boolean">
   import { nextTick, onMounted, ref, watch } from "vue";
-  import { ColumnType } from "@models/column";
+  import { ColumnType } from "#editable-table/types/column";
   import { cva } from "class-variance-authority";
-  import EditableTableSelectCell from "./EditableTableSelectCell.vue";
+  import EditableTableSelectCell from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableSelectCell.vue";
 
   export interface EditableTableCellEditorProps {
     type?: ColumnType;
@@ -78,7 +78,11 @@
 <template>
   <div ref="editorRoot" class="w-full h-full" @focusout="emit('blur', $event)">
     <template v-if="type === 'select'">
-      <EditableTableSelectCell v-model="value" :options="selectOptions" :is-editable="isEditable" :allow-custom-options="allowCustomOptions" />
+      <EditableTableSelectCell
+        v-model="value"
+        :options="selectOptions"
+        :is-editable="isEditable"
+        :allow-custom-options="allowCustomOptions" />
     </template>
 
     <template v-else-if="!isEditable">

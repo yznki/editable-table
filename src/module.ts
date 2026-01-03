@@ -16,11 +16,13 @@ export default defineNuxtModule<ModuleOptions>({
     /**
      * Runtime alias (for explicit imports & types)
      */
-    nuxt.options.alias ||= {};
+    const runtimeDir = resolver.resolve("./runtime");
 
-    nuxt.options.alias["@components"] = resolver.resolve("./runtime/components");
-    nuxt.options.alias["@composables"] = resolver.resolve("./runtime/composables");
-    nuxt.options.alias["@models"] = resolver.resolve("./runtime/types");
+    nuxt.options.alias ||= {};
+    nuxt.options.alias["#editable-table"] = runtimeDir;
+    nuxt.options.alias["#editable-table/components"] = resolver.resolve("./runtime/components");
+    nuxt.options.alias["#editable-table/composables"] = resolver.resolve("./runtime/composables");
+    nuxt.options.alias["#editable-table/types"] = resolver.resolve("./runtime/types");
 
     /**
      * Auto-import composables

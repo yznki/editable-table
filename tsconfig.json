@@ -8,9 +8,10 @@
 
     "baseUrl": ".",
     "paths": {
-      "@components/*": ["./src/runtime/components/*"],
-      "@composables/*": ["./src/runtime/composables/*"],
-      "@models/*": ["./src/runtime/types/*"]
+      "#editable-table/*": ["./src/runtime/*"],
+      "#editable-table/components/*": ["./src/runtime/components/*"],
+      "#editable-table/composables/*": ["./src/runtime/composables/*"],
+      "#editable-table/types/*": ["./src/runtime/types/*"]
     }
   },
   "include": ["src"],
