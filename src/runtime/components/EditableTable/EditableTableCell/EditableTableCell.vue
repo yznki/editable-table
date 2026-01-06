@@ -6,7 +6,7 @@
   import EditableTableCellEditor from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
   import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
   import { useEditableTableNavigation } from "#editable-table/composables/useEditableTableNavigation";
-  import { ColumnType } from "#editable-table/types/column";
+  import { type ColumnType } from "#editable-table/types/column";
 
   interface SelectionRange {
     startRowIndex: number;

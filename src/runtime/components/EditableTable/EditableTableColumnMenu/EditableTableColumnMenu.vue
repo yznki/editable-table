@@ -12,7 +12,7 @@
     faEyeSlash
   } from "@fortawesome/free-solid-svg-icons";
   import {
-    ColumnType,
+    type ColumnType,
     type ColumnTypeOption,
     type EditableTableColumn,
     defaultColumnTypeOptions,

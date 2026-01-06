@@ -1,5 +1,5 @@
-import { ComputedRef, Ref } from "vue";
-import { EditableTableColumn } from "#editable-table/types/column";
+import type { ComputedRef, Ref } from "vue";
+import { type EditableTableColumn } from "#editable-table/types/column";
 
 export interface TableSelectionRange {
   startRowIndex: number;

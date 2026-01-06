@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="TValue extends string | number | boolean">
   import { nextTick, onMounted, ref, watch } from "vue";
-  import { ColumnType } from "#editable-table/types/column";
+  import { type ColumnType } from "#editable-table/types/column";
   import { cva } from "class-variance-authority";
   import EditableTableSelectCell from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableSelectCell.vue";
 

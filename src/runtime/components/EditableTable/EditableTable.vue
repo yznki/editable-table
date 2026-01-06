@@ -2,7 +2,12 @@
   import { computed, ref, watch } from "vue";
   import { onClickOutside } from "@vueuse/core";
   import { cva } from "class-variance-authority";
-  import { ColumnType, EditableTableColumn, defaultColumnTypeOptions, resolveColumnTypeOption } from "#editable-table/types/column";
+  import {
+    type ColumnType,
+    type EditableTableColumn,
+    defaultColumnTypeOptions,
+    resolveColumnTypeOption
+  } from "#editable-table/types/column";
 
   import { useEditableTableClipboard, type TableSelectionRange } from "#editable-table/composables/useEditableTableClipboard";
   import { useEditableTableNavigation, type NavigationSelectionState } from "#editable-table/composables/useEditableTableNavigation";
@@ -19,7 +24,7 @@
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
   import { faEyeSlash, faPlus } from "@fortawesome/free-solid-svg-icons";
   import EditableTableHeaderMenu from "#editable-table/components/EditableTable/EditableTableHeaderMenu.vue";
-  import { EditableTableProps } from "#editable-table/types/table";
+  import { type EditableTableProps } from "#editable-table/types/table";
 
   type CellPosition = { rowIndex: number; columnIndex: number };
   type CellChange = {

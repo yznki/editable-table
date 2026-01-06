@@ -42,15 +42,6 @@ export default defineNuxtModule<ModuleOptions>({
     });
 
     /**
-     * Tailwind (Vite plugin)
-     */
-    const tailwindcss = (await import("@tailwindcss/vite")).default;
-
-    nuxt.options.vite ||= {};
-    nuxt.options.vite.plugins ||= [];
-    nuxt.options.vite.plugins.push(tailwindcss());
-
-    /**
      * Tailwind base styles
      */
     nuxt.options.css ||= [];
