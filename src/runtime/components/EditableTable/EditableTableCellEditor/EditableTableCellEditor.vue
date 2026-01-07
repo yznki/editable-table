@@ -32,7 +32,7 @@
     variants: {
       editable: {
         true: "select-text",
-        false: "select-none text-gray-800"
+        false: "select-none text-grey-800"
       }
     },
     defaultVariants: {

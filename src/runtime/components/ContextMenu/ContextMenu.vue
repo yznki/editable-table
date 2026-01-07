@@ -30,7 +30,7 @@
   const menuElement = ref<HTMLElement | null>(null);
 
   const menuClass = cva(
-    "fixed z-50 min-w-48 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-800 shadow-lg ring-1 ring-black/5 transition"
+    "fixed z-50 min-w-48 rounded-lg border border-grey-200 bg-white p-2 text-sm text-grey-800 shadow-lg ring-1 ring-black/5 transition"
   );
 
   const alignmentClass = computed(() =>

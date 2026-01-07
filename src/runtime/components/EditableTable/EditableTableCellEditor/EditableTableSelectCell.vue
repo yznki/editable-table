@@ -258,20 +258,20 @@
           <div
             v-if="options?.length && isDropdownOpen"
             ref="dropdownElement"
-            class="z-50 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg ring-1 ring-black/5"
+            class="z-50 overflow-y-auto rounded-lg border border-grey-200 bg-white shadow-lg ring-1 ring-black/5"
             :style="dropdownStyle">
             <button
               v-for="(entry, optionIndex) in dropdownEntries"
               :key="entry.label + optionIndex"
               type="button"
-              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-800 transition hover:bg-gray-50"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-grey-800 transition hover:bg-grey-50"
               :data-option="true"
               :data-active="highlightedIndex === optionIndex"
-              :class="highlightedIndex === optionIndex ? 'bg-gray-50' : ''"
+              :class="highlightedIndex === optionIndex ? 'bg-grey-50' : ''"
               @mousedown.prevent="selectOption(entry.label)"
               @click.prevent="selectOption(entry.label)">
               <span v-if="!entry.isNew" class="block h-2 w-2 rounded-full" :style="{ backgroundColor: colorsForOption(entry.label).dot }" />
-              <span v-else class="block h-2 w-2 rounded-full bg-gray-300" />
+              <span v-else class="block h-2 w-2 rounded-full bg-grey-300" />
               <span class="truncate">{{ entry.label }}</span>
             </button>
           </div>
