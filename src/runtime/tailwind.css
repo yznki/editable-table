@@ -1,5 +1,0 @@
-@import "tailwindcss";
-
-@source "./components/**/*.{vue,ts}";
-@source "./composables/**/*.{ts}";
-@source "./types/**/*.{ts}";

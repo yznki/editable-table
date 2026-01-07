@@ -1,4 +1,10 @@
-import { defineNuxtModule, createResolver, addImportsDir, addComponentsDir } from "@nuxt/kit";
+import {
+  defineNuxtModule,
+  createResolver,
+  addImportsDir,
+  addComponentsDir,
+  installModule
+} from "@nuxt/kit";
 
 export interface ModuleOptions {}
 
@@ -41,10 +47,10 @@ export default defineNuxtModule<ModuleOptions>({
       pathPrefix: false
     });
 
-    /**
-     * Tailwind base styles
-     */
-    nuxt.options.css ||= [];
-    nuxt.options.css.push(resolver.resolve("./runtime/tailwind.css"));
+    await installModule("@nuxtjs/tailwindcss", {
+      configPath: resolver.resolve("../tailwind.config"),
+      cssPath: [resolver.resolve("../assets/tailwind/tailwind.css"), { injectPosition: "first" }],
+      exposeConfig: true
+    });
   }
 });

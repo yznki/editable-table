@@ -26,12 +26,12 @@
   const visibilityButton = ref<HTMLElement | null>(null);
   const visibilityCloseTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
-  const headerMenuTitle = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500");
+  const headerMenuTitle = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-grey-500");
   const headerMenuItem = cva("flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition-colors text-left", {
     variants: {
       hidden: {
-        true: "text-gray-500 hover:bg-gray-50",
-        false: "text-gray-800 hover:bg-gray-50"
+        true: "text-grey-500 hover:bg-grey-50",
+        false: "text-grey-800 hover:bg-grey-50"
       }
     },
     defaultVariants: {
@@ -41,8 +41,8 @@
   const headerMenuSubmenuItem = cva("flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left", {
     variants: {
       active: {
-        true: "bg-gray-100 text-gray-900",
-        false: "hover:bg-gray-50 text-gray-800"
+        true: "bg-grey-100 text-grey-900",
+        false: "hover:bg-grey-50 text-grey-800"
       }
     },
     defaultVariants: {
@@ -122,10 +122,10 @@
         @mouseleave="scheduleCloseVisibilityMenu"
         @click="openVisibilityMenu">
         <span class="flex min-w-0 items-center gap-2">
-          <FontAwesomeIcon :icon="faEye" class="h-4 w-4 text-gray-400" />
+          <FontAwesomeIcon :icon="faEye" class="h-4 w-4 text-grey-400" />
           <span class="truncate">Visibility</span>
         </span>
-        <span class="text-xs text-gray-400 shrink-0">{{ hiddenCount ? hiddenCount : "" }}</span>
+        <span class="text-xs text-grey-400 shrink-0">{{ hiddenCount ? hiddenCount : "" }}</span>
       </button>
       <ContextMenu
         v-model="isVisibilityMenuOpen"
@@ -143,17 +143,17 @@
             :class="headerMenuItem({ hidden: Boolean(column.hidden) })"
             @click="emit('toggle-column', columnIndex)">
             <span class="flex min-w-0 items-center gap-2">
-              <FontAwesomeIcon :icon="column.hidden ? faEyeSlash : faEye" class="h-4 w-4 text-gray-400" />
+              <FontAwesomeIcon :icon="column.hidden ? faEyeSlash : faEye" class="h-4 w-4 text-grey-400" />
               <span class="truncate">{{ column.title }}</span>
             </span>
-            <span class="text-xs text-gray-400 shrink-0">{{ column.hidden ? "Hidden" : "Shown" }}</span>
+            <span class="text-xs text-grey-400 shrink-0">{{ column.hidden ? "Hidden" : "Shown" }}</span>
           </button>
           <button v-if="hiddenCount" type="button" :class="headerMenuItem({ hidden: false })" @click="emit('show-hidden')">
             <span class="flex min-w-0 items-center gap-2">
-              <FontAwesomeIcon :icon="faEye" class="h-4 w-4 text-gray-400" />
+              <FontAwesomeIcon :icon="faEye" class="h-4 w-4 text-grey-400" />
               <span class="truncate">Show all hidden</span>
             </span>
-            <span class="text-xs text-gray-400 shrink-0">{{ hiddenCount }}</span>
+            <span class="text-xs text-grey-400 shrink-0">{{ hiddenCount }}</span>
           </button>
         </div>
       </ContextMenu>

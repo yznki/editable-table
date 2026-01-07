@@ -176,97 +176,97 @@
 
 <template>
   <div
-    class="relative min-h-screen overflow-hidden bg-linear-to-br from-[#f9fafb] via-[#f3f0ff] to-[#e9f7ff] text-slate-900 font-['Space_Grotesk','Manrope',system-ui,sans-serif]">
+    class="relative min-h-screen overflow-hidden bg-linear-to-br from-primary-100/15 via-white to-accent-50/30 text-grey-900 font-source-sans">
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
       <div
-        class="absolute -left-32 top-10 h-64 w-64 rounded-full bg-linear-to-br from-indigo-200 via-white to-emerald-100 blur-3xl opacity-60" />
+        class="absolute -left-32 top-10 h-64 w-64 rounded-full bg-linear-to-br from-primary-100/40 via-white to-accent-50/50 blur-3xl opacity-60" />
       <div
-        class="absolute -right-12 -bottom-16 h-72 w-72 rounded-full bg-linear-to-tr from-orange-100 via-white to-sky-100 blur-3xl opacity-70" />
+        class="absolute -right-12 -bottom-16 h-72 w-72 rounded-full bg-linear-to-tr from-secondary-100/40 via-white to-accent-50/40 blur-3xl opacity-70" />
     </div>
 
     <main class="relative mx-auto max-w-7xl px-6 py-10 space-y-10">
       <header class="max-w-4xl space-y-6">
-        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Nuxt module · editable grid</p>
-        <h1 class="text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl">Editable Table built for flow, not forms.</h1>
-        <p class="text-lg leading-relaxed text-slate-700">
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-grey-500">Nuxt module · editable grid</p>
+        <h1 class="text-4xl font-semibold leading-tight text-grey-900 sm:text-5xl">Editable Table built for flow, not forms.</h1>
+        <p class="text-lg leading-relaxed text-grey-700">
           Compose spreadsheet-like experiences with real keyboard support, type-aware editors, clipboard integration, and row/column
           utilities. Every interaction in the table below updates the live data snapshot.
         </p>
-        <div class="flex flex-wrap gap-3 text-sm font-medium text-slate-800">
-          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Keyboard-first</span>
-          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Copy/Paste to Sheets</span>
-          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Column + row controls</span>
-          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-slate-200">Tailwind styled</span>
+        <div class="flex flex-wrap gap-3 text-sm font-medium text-grey-800">
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-grey-200">Keyboard-first</span>
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-grey-200">Copy/Paste to Sheets</span>
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-grey-200">Column + row controls</span>
+          <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm ring-1 ring-grey-200">Tailwind styled</span>
         </div>
       </header>
 
       <section class="overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-xl ring-1 ring-black/5 backdrop-blur">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-grey-200/70 px-5 py-4">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Live demo</p>
-            <p class="text-lg font-semibold text-slate-900">Product teams roster</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-grey-500">Live demo</p>
+            <p class="text-lg font-semibold text-grey-900">Product teams roster</p>
           </div>
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow-md"
+              class="rounded-full border border-grey-200 bg-white px-3 py-1.5 text-sm font-medium text-grey-700 shadow-sm transition hover:-translate-y-px hover:shadow-md"
               @click="resetRows">
               Reset data
             </button>
             <button
               type="button"
-              class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow-md"
+              class="rounded-full border border-grey-200 bg-white px-3 py-1.5 text-sm font-medium text-grey-700 shadow-sm transition hover:-translate-y-px hover:shadow-md"
               @click="applyValidationExamples">
               Show validation errors
             </button>
             <button
               type="button"
-              class="rounded-full bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-px hover:shadow-lg"
+              class="rounded-full bg-accent-100 px-3 py-1.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-px hover:bg-accent-200 hover:shadow-lg"
               @click="addSampleRow">
               Add sample row
             </button>
           </div>
         </div>
 
-        <div class="border-b border-slate-200/70 bg-linear-to-b from-white to-slate-50/60 px-4 pb-4 pt-3">
+        <div class="border-b border-grey-200/70 bg-linear-to-b from-white to-grey-50/60 px-4 pb-4 pt-3">
           <EditableTable v-model="rows" v-model:columns="columns" allow-column-type-changes storage-key="playground-roster" />
         </div>
 
-        <div class="border-b border-slate-200/70 bg-white/80 px-5 py-4">
+        <div class="border-b border-grey-200/70 bg-white/80 px-5 py-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="space-y-1">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Validation walkthrough</p>
-              <p class="text-sm text-slate-600">
+              <p class="text-xs font-semibold uppercase tracking-wide text-grey-500">Validation walkthrough</p>
+              <p class="text-sm text-grey-600">
                 Load the validation errors and hover the red borders in the table to see each rule in action.
               </p>
             </div>
-            <div class="grid gap-2 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
-              <div v-for="example in validationExamples" :key="example.title" class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-slate-200">
-                <p class="text-sm font-semibold text-slate-900">{{ example.title }}</p>
-                <p class="mt-1 leading-relaxed text-slate-600">{{ example.detail }}</p>
+            <div class="grid gap-2 text-xs text-grey-600 sm:grid-cols-2 lg:grid-cols-4">
+              <div v-for="example in validationExamples" :key="example.title" class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-grey-200">
+                <p class="text-sm font-semibold text-grey-900">{{ example.title }}</p>
+                <p class="mt-1 leading-relaxed text-grey-600">{{ example.detail }}</p>
               </div>
             </div>
           </div>
         </div>
 
         <div class="grid gap-3 px-5 py-4 sm:grid-cols-2">
-          <div class="rounded-2xl bg-slate-900 text-white shadow-lg ring-1 ring-black/10">
+          <div class="rounded-2xl bg-tertiary-300 text-white shadow-lg ring-1 ring-black/10">
             <div class="px-4 py-3 text-xs uppercase tracking-wide text-white/70">Active teammates</div>
             <div class="px-4 pb-4 text-3xl font-semibold">{{ activeCount }} / {{ rows.length }}</div>
           </div>
-          <div class="rounded-2xl bg-white/90 shadow-inner ring-1 ring-slate-200">
-            <div class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Open tickets</div>
+          <div class="rounded-2xl bg-white/90 shadow-inner ring-1 ring-grey-200">
+            <div class="px-4 py-3 text-xs uppercase tracking-wide text-grey-500">Open tickets</div>
             <div class="flex items-baseline gap-2 px-4 pb-4">
-              <span class="text-3xl font-semibold text-slate-900">{{ totalTickets }}</span>
-              <span class="text-sm text-slate-500">avg {{ avgTickets }}</span>
+              <span class="text-3xl font-semibold text-grey-900">{{ totalTickets }}</span>
+              <span class="text-sm text-grey-500">avg {{ avgTickets }}</span>
             </div>
           </div>
-          <div class="rounded-2xl bg-white/90 shadow-inner ring-1 ring-slate-200 sm:col-span-2">
+          <div class="rounded-2xl bg-white/90 shadow-inner ring-1 ring-grey-200 sm:col-span-2">
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs uppercase tracking-wide text-slate-500">Most recent start date</span>
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Sort by Joined →</span>
+              <span class="text-xs uppercase tracking-wide text-grey-500">Most recent start date</span>
+              <span class="rounded-full bg-grey-100 px-3 py-1 text-xs font-medium text-grey-700">Sort by Joined →</span>
             </div>
-            <div class="px-4 pb-4 text-lg font-semibold text-slate-900">{{ formatDate(newestJoin ?? "") }}</div>
+            <div class="px-4 pb-4 text-lg font-semibold text-grey-900">{{ formatDate(newestJoin ?? "") }}</div>
           </div>
         </div>
       </section>
@@ -274,18 +274,18 @@
       <section class="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-lg ring-1 ring-black/5 backdrop-blur">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Feature set</p>
-            <h3 class="text-lg font-semibold text-slate-900">Everything enabled in this playground</h3>
+            <p class="text-xs font-semibold uppercase tracking-wide text-grey-500">Feature set</p>
+            <h3 class="text-lg font-semibold text-grey-900">Everything enabled in this playground</h3>
           </div>
-          <span class="rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">Latest</span>
+          <span class="rounded-full bg-accent-100/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">Latest</span>
         </div>
         <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div
             v-for="feature in featureHighlights"
             :key="feature.title"
-            class="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
-            <p class="text-sm font-semibold text-slate-900">{{ feature.title }}</p>
-            <p class="mt-2 text-xs leading-relaxed text-slate-600">{{ feature.detail }}</p>
+            class="rounded-2xl border border-grey-200/80 bg-white/80 p-4 shadow-sm">
+            <p class="text-sm font-semibold text-grey-900">{{ feature.title }}</p>
+            <p class="mt-2 text-xs leading-relaxed text-grey-600">{{ feature.detail }}</p>
           </div>
         </div>
       </section>
@@ -294,14 +294,14 @@
         <div class="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-lg ring-1 ring-black/5 backdrop-blur">
           <div class="flex items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ways to explore</p>
-              <h3 class="text-lg font-semibold text-slate-900">Try these interactions in the table</h3>
+              <p class="text-xs font-semibold uppercase tracking-wide text-grey-500">Ways to explore</p>
+              <h3 class="text-lg font-semibold text-grey-900">Try these interactions in the table</h3>
             </div>
-            <span class="rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">Hands-on</span>
+            <span class="rounded-full bg-accent-100/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">Hands-on</span>
           </div>
-          <ul class="mt-4 space-y-3 text-slate-700">
-            <li v-for="tip in tips" :key="tip" class="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200/80">
-              <span class="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-slate-900" />
+          <ul class="mt-4 space-y-3 text-grey-700">
+            <li v-for="tip in tips" :key="tip" class="flex items-start gap-3 rounded-xl bg-grey-50 px-4 py-3 ring-1 ring-grey-200/80">
+              <span class="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-accent-100" />
               <span class="leading-relaxed">{{ tip }}</span>
             </li>
           </ul>
@@ -311,10 +311,10 @@
           <div class="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-lg ring-1 ring-black/5 backdrop-blur">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Keyboard palette</p>
-                <h3 class="text-lg font-semibold text-slate-900">Stay in flow without the mouse</h3>
+                <p class="text-xs font-semibold uppercase tracking-wide text-grey-500">Keyboard palette</p>
+                <h3 class="text-lg font-semibold text-grey-900">Stay in flow without the mouse</h3>
               </div>
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700"
+              <span class="rounded-full bg-grey-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-grey-700"
                 >Power user</span
               >
             </div>
@@ -322,16 +322,16 @@
               <div
                 v-for="entry in hotkeys"
                 :key="entry.combo"
-                class="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200/80">
-                <span class="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">{{
+                class="flex items-start gap-3 rounded-xl bg-grey-50 px-4 py-3 ring-1 ring-grey-200/80">
+                <span class="rounded-lg bg-tertiary-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">{{
                   entry.combo
                 }}</span>
-                <span class="leading-relaxed text-slate-700">{{ entry.note }}</span>
+                <span class="leading-relaxed text-grey-700">{{ entry.note }}</span>
               </div>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/70 bg-slate-900 text-slate-100 shadow-xl ring-1 ring-black/10 backdrop-blur">
+          <div class="rounded-2xl border border-white/70 bg-tertiary-300 text-grey-100 shadow-xl ring-1 ring-black/10 backdrop-blur">
             <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Data snapshot</p>
@@ -351,7 +351,3 @@
     </main>
   </div>
 </template>
-
-<style>
-  @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Manrope:wght@500;600&display=swap");
-</style>
