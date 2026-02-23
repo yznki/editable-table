@@ -1,6 +1,6 @@
 {
   "name": "nuxt-editable-table",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Editable Table Module for Nuxt",
   "license": "MIT",
   "type": "module",
