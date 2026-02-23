@@ -1,7 +1,6 @@
 <script setup lang="ts" generic="TRow extends Record<string, any>, TKey extends keyof TRow">
-  import { computed, onBeforeUnmount, ref, watch } from "vue";
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
   import { useMagicKeys } from "@vueuse/core";
-  import { cva } from "class-variance-authority";
 
   import EditableTableCellEditor from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
   import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
@@ -71,6 +70,9 @@
   const repeatTimeoutHandles = new Map<ArrowNavigationKey, number>();
   const cellElement = ref<HTMLElement | null>(null);
   const tooltipElement = ref<HTMLElement | null>(null);
+  const tableRootElement = ref<HTMLElement | null>(null);
+  const isHovered = ref(false);
+  const suppressFocusTooltip = ref(false);
   const originalValue = ref<TRow[TKey] | null>(null);
   const hasOriginalValue = ref(false);
   const selectOnFocus = ref(true);
@@ -96,37 +98,6 @@
       props.columnIndex >= startColumnIndex &&
       props.columnIndex <= endColumnIndex
     );
-  });
-
-  const isLastRow = computed(() => props.rowIndex === props.rowCount - 1);
-
-  const { position: tooltipPosition } = useSmartTooltip({
-    triggerElement: cellElement.value,
-    tooltipElement: tooltipElement.value,
-    tooltipWidth: 600,
-    gap: 8,
-    padding: 8
-  });
-
-  const cellClass = cva("relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent", {
-    variants: {
-      active: {
-        true: "bg-accent-50/70",
-        false: ""
-      },
-      focused: {
-        true: "border-accent-200 shadow-[inset_0_0_0_2px_rgba(var(--color-accent-100),0.45)]",
-        false: "hover:bg-gray-50"
-      },
-      selected: {
-        true: "bg-accent-50/40 shadow-[inset_0_0_0_1px_rgba(var(--color-accent-100),0.25)]",
-        false: "hover:bg-gray-50"
-      },
-      invalid: {
-        true: "border-error-100 shadow-[inset_0_0_0_1px_rgba(205,0,47,0.35)]",
-        false: ""
-      }
-    }
   });
 
   function isDateValue(input: unknown): input is Date {
@@ -194,6 +165,31 @@
 
     return null;
   });
+
+  const tooltipId = computed(() => `editable-table-tooltip-${String(props.rowId)}-${String(props.columnKey)}`);
+  const isTooltipVisible = computed(
+    () => Boolean(validationMessage.value) && (isHovered.value || (isFocused.value && !suppressFocusTooltip.value))
+  );
+
+  const { position: tooltipPosition } = useSmartTooltip({
+    triggerElement: cellElement,
+    tooltipElement,
+    boundaryElement: tableRootElement,
+    isOpen: isTooltipVisible,
+    preferredPlacement: "top",
+    maxWidth: 360,
+    minWidth: 180,
+    gap: 8,
+    padding: 8
+  });
+
+  const cellClass = computed(() => [
+    "relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent",
+    isActive.value ? "bg-accent-50/70" : "",
+    isFocused.value ? "border-accent-200 shadow-[inset_0_0_0_2px_rgba(var(--color-accent-100),0.45)]" : "hover:bg-gray-50",
+    isSelected.value ? "bg-accent-50/40 shadow-[inset_0_0_0_1px_rgba(var(--color-accent-100),0.25)]" : "hover:bg-gray-50",
+    isInvalid.value ? "border-error-100 shadow-[inset_0_0_0_1px_rgba(205,0,47,0.35)]" : ""
+  ]);
 
   const isInvalid = computed(() => validationMessage.value !== null);
 
@@ -376,6 +372,13 @@
   }
 
   function onKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape" && isTooltipVisible.value && !isActive.value) {
+      event.preventDefault();
+      suppressFocusTooltip.value = true;
+      isHovered.value = false;
+      return;
+    }
+
     // Handle Tab separately (includes Shift+Tab)
     if (event.key === "Tab") {
       if (!isFocused.value) return;
@@ -435,6 +438,10 @@
   });
 
   watch(isFocused, (focused) => {
+    if (!focused) {
+      suppressFocusTooltip.value = false;
+    }
+
     if (focused) {
       emit("cell-focus", { rowIndex: props.rowIndex, columnIndex: props.columnIndex });
     }
@@ -445,7 +452,7 @@
       return;
     }
 
-    if (originalValue.value !== null) {
+    if (hasOriginalValue.value) {
       value.value = originalValue.value;
     }
 
@@ -504,6 +511,10 @@
     stopAllRepeats();
   });
 
+  onMounted(() => {
+    tableRootElement.value = cellElement.value?.closest("[data-editable-table-root]") as HTMLElement | null;
+  });
+
   function onBlur() {
     stopEditing();
   }
@@ -513,14 +524,14 @@
   <div
     tabindex="0"
     ref="cellElement"
-    :class="[
-      cellClass({ active: isActive, focused: isFocused, selected: isSelected, invalid: isInvalid }),
-      !isActive ? 'select-none' : '',
-      'group relative'
-    ]"
+    :class="[cellClass, !isActive ? 'select-none' : '', 'relative']"
+    :aria-invalid="isInvalid ? 'true' : 'false'"
+    :aria-describedby="isTooltipVisible ? tooltipId : undefined"
     @mousedown="onMouseDown"
     @keydown="onKeyDown"
-    @dblclick="onDblClick">
+    @dblclick="onDblClick"
+    @mouseenter="isHovered = true"
+    @mouseleave="isHovered = false">
     <div class="w-full h-full whitespace-nowrap overflow-hidden">
       <EditableTableCellEditor
         v-model="value"
@@ -532,12 +543,16 @@
         class="w-full"
         :is-editable="isActive" />
     </div>
-    <div
-      v-if="validationMessage"
-      ref="tooltipElement"
-      class="rounded-md border border-error-50 bg-white px-2 py-1 text-xs text-error-100 shadow-sm break-words whitespace-normal pointer-events-none absolute z-20 hidden group-hover:block"
-      :style="tooltipPosition.style">
-      {{ validationMessage }}
-    </div>
+    <teleport to="body">
+      <div
+        v-if="validationMessage && isTooltipVisible"
+        :id="tooltipId"
+        ref="tooltipElement"
+        role="tooltip"
+        class="rounded-lg border border-error-100/30 bg-white px-3 py-2 text-[12px] leading-5 text-error-100 shadow-xl ring-1 ring-black/5 break-words whitespace-normal"
+        :style="tooltipPosition.style">
+        {{ validationMessage }}
+      </div>
+    </teleport>
   </div>
 </template>

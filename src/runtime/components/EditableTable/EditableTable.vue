@@ -85,7 +85,7 @@
       if (column.allowCustomOptions !== false) {
         const manualOptions = manualSelectOptions.value[key] ?? [];
         manualOptions.forEach((option) => {
-          if (merged.has(option)) merged.add(option);
+          if (!merged.has(option)) merged.add(option);
         });
       }
 

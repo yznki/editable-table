@@ -38,6 +38,7 @@ export function useEditableTableNavigation() {
 
   function move(direction: "left" | "right" | "up" | "down", rowCount: number, columnCount: number) {
     if (!activePosition.value) return;
+    if (rowCount <= 0 || columnCount <= 0) return;
 
     let { rowIndex, columnIndex } = activePosition.value;
 
