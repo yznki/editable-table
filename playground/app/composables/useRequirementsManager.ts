@@ -45,6 +45,22 @@ export const REQUIREMENT_TYPES: RequirementType[] = ["Performance", "Functional"
 export const ASIL_VALUES: Asil[] = ["Qm", "JamaA", "JamaB", "JamaC", "JamaD"];
 
 const STORAGE_KEY = "requirements-manager-storage-v1";
+const NEXT_PROJECT_ID_KEY = "requirements-manager-next-project-id";
+const NEXT_SHEET_ID_KEY = "requirements-manager-next-sheet-id";
+
+function nextIncrementalId(storageKey: string) {
+  if (typeof window === "undefined") {
+    return String(Date.now());
+  }
+
+  const raw = window.localStorage.getItem(storageKey);
+  const current = Number(raw);
+  const safeCurrent = Number.isFinite(current) && current >= 1 ? current : 1;
+  const next = safeCurrent + 1;
+
+  window.localStorage.setItem(storageKey, String(next));
+  return String(safeCurrent);
+}
 
 export function useRequirementsManagerStorage() {
   return useLocalStorage<RequirementsManagerStorage>(STORAGE_KEY, {
@@ -70,7 +86,7 @@ export function createEmptyRequirement(): RequirementRow {
 
 export function createDefaultSheet(name = "Requirement Set 1"): RequirementSheet {
   return {
-    id: crypto.randomUUID(),
+    id: nextIncrementalId(NEXT_SHEET_ID_KEY),
     name,
     requirements: [createEmptyRequirement()]
   };
@@ -80,7 +96,7 @@ export function createProject(name: string, description: string): ProjectRecord 
   const now = new Date().toISOString();
 
   return {
-    id: crypto.randomUUID(),
+    id: nextIncrementalId(NEXT_PROJECT_ID_KEY),
     name,
     description,
     createdAt: now,

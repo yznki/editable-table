@@ -33,7 +33,7 @@
     previousValue: TRow[keyof TRow];
     nextValue: TRow[keyof TRow];
   };
-  const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { allowColumnTypeChanges: false });
+  const props = withDefaults(defineProps<EditableTableProps<TRow>>(), { allowColumnTypeChanges: false, disableColumnPreferences: false });
 
   const rows = defineModel<TRow[]>({ default: () => [] });
   const columns = defineModel<EditableTableColumn<TRow>[]>("columns", { default: () => [] });
@@ -145,6 +145,7 @@
       columns,
       indexColumnWidth,
       storageKey: props.storageKey,
+      disabled: props.disableColumnPreferences,
       rowsLength: computed(() => rows.value.length),
       onApplySort(column, direction) {
         sortRowsByColumnInternal(column, direction);
@@ -332,6 +333,24 @@
     } else {
       nextInvalidKeys.delete(cellKey);
     }
+
+    invalidCellKeys.value = nextInvalidKeys;
+  }
+
+  function updateRowValidity(rowId: string | number, row: TRow) {
+    const nextInvalidKeys = new Set(invalidCellKeys.value);
+
+    columns.value.forEach((column) => {
+      const value = row[column.rowKey as keyof TRow];
+      const message = getValidationMessage(value, column, row);
+      const cellKey = getCellKey(rowId, String(column.rowKey));
+
+      if (message) {
+        nextInvalidKeys.add(cellKey);
+      } else {
+        nextInvalidKeys.delete(cellKey);
+      }
+    });
 
     invalidCellKeys.value = nextInvalidKeys;
   }
@@ -608,7 +627,7 @@
     if (column) {
       const row = rows.value[payload.rowIndex];
       if (row) {
-        updateCellValidity(rowId, column, row);
+        updateRowValidity(rowId, row);
       }
     }
   }
@@ -879,7 +898,7 @@
         if (column) {
           const row = rowsById.get(change.rowId);
           if (row) {
-            updateCellValidity(change.rowId, column, row);
+            updateRowValidity(change.rowId, row);
           }
         }
       });

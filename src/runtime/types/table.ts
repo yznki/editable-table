@@ -9,4 +9,5 @@ export interface EditableTableProps<TRow extends Record<string, any> = Record<st
 
   allowColumnTypeChanges?: boolean;
   storageKey?: string;
+  disableColumnPreferences?: boolean;
 }

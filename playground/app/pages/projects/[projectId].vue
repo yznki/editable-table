@@ -1,27 +1,44 @@
 <template>
   <main class="min-h-screen bg-slate-100 text-slate-900">
-    <section v-if="workingProject" class="w-full px-4 py-6 md:px-6 lg:px-8">
+    <section v-if="isPageLoading" class="w-full px-4 py-6 md:px-6 lg:px-8">
+      <div class="animate-pulse space-y-5">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <div class="h-3 w-36 rounded bg-slate-200" />
+          <div class="mt-4 h-8 w-80 max-w-full rounded bg-slate-200" />
+          <div class="mt-3 h-4 w-full max-w-4xl rounded bg-slate-200" />
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+          <div class="mb-4 flex gap-2">
+            <div class="h-10 w-28 rounded-xl bg-slate-200" />
+            <div class="h-10 w-28 rounded-xl bg-slate-200" />
+            <div class="h-10 w-24 rounded-xl bg-slate-200" />
+          </div>
+          <div class="h-[320px] rounded-xl bg-slate-200" />
+        </div>
+      </div>
+    </section>
+
+    <section v-else-if="project" class="w-full px-4 py-6 md:px-6 lg:px-8">
       <header class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <NuxtLink to="/" class="text-xs uppercase tracking-wide text-[#0A8276] hover:text-[#086d63]">← Back to projects</NuxtLink>
-            <h1 class="mt-3 text-3xl font-black text-slate-900 md:text-4xl">{{ workingProject.name }}</h1>
-            <p class="mt-2 max-w-4xl text-sm text-slate-600 md:text-base">{{ workingProject.description || "No description" }}</p>
+            <h1 class="mt-3 text-3xl font-black text-slate-900 md:text-4xl">{{ project.name }}</h1>
+            <p class="mt-2 max-w-4xl text-sm text-slate-600 md:text-base">{{ project.description || "No description" }}</p>
           </div>
 
           <div class="flex flex-col items-end gap-2">
             <button
               type="button"
               :disabled="!canSave"
-              @click="saveProject"
+              @click="saveActiveSheet"
               class="rounded-xl px-4 py-2 text-sm font-semibold transition"
               :class="canSave ? 'bg-[#0A8276] text-white hover:bg-[#086d63]' : 'cursor-not-allowed bg-slate-600 text-slate-300'">
               Save
             </button>
             <p class="text-xs" :class="canSave ? 'text-[#0A8276]' : 'text-rose-700'">
               {{
-                canSave ?
-                  "Ready to save"
+                canSave ? "Ready to save"
                 : !hasUnsavedChanges ? "No changes to save"
                 : "Fix validation errors before saving"
               }}
@@ -35,7 +52,7 @@
         <div ref="tabsContainerEl" class="relative border-b border-slate-200 bg-slate-100 px-4 pt-3">
           <div ref="tabsStripEl" class="flex items-end gap-1 overflow-x-auto">
             <div
-              v-for="(sheet, index) in workingProject.sheets"
+              v-for="(sheet, index) in project.sheets"
               :key="sheet.id"
               :data-sheet-id="sheet.id"
               :class="[
@@ -95,16 +112,15 @@
 
         <div class="w-full p-4 md:p-6">
           <EditableTable
-            v-if="activeSheet"
-            v-model="activeSheet.requirements"
+            v-if="activeSheetDraft"
+            v-model="activeSheetDraft.requirements"
             v-model:columns="tableColumns"
-            v-model:isValid="isTableValid"
-          />
+            v-model:isValid="isTableValid" />
         </div>
       </section>
     </section>
 
-    <section v-else class="mx-auto max-w-2xl px-6 py-12 text-center">
+    <section v-else class="mx-auto px-6 py-12 text-center">
       <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 class="text-2xl font-bold">Project not found</h1>
         <p class="mt-2 text-sm text-slate-600">The selected project does not exist in local storage.</p>
@@ -138,9 +154,7 @@
             Are you sure you want to delete
             <span class="font-semibold text-slate-800">"{{ sheetDeleteDialog.name }}"</span>?
           </p>
-          <p v-if="!canDeleteCurrentSheet" class="mt-2 text-xs text-rose-700">
-            A project must keep at least one requirement set.
-          </p>
+          <p v-if="!canDeleteCurrentSheet" class="mt-2 text-xs text-rose-700">A project must keep at least one requirement set.</p>
 
           <div class="mt-5 flex items-center justify-end gap-2">
             <button
@@ -161,11 +175,59 @@
         </div>
       </div>
     </Transition>
+
+    <Transition
+      enter-active-class="transition-opacity duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="sheetSwitchDialog" class="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm" />
+    </Transition>
+
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2 scale-[0.98]"
+      enter-to-class="opacity-100 translate-y-0 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0 scale-100"
+      leave-to-class="opacity-0 translate-y-2 scale-[0.98]">
+      <div v-if="sheetSwitchDialog" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <h3 class="text-lg font-bold text-slate-900">Unsaved Changes</h3>
+          <p class="mt-2 text-sm text-slate-600">You have unsaved changes in this requirement set.</p>
+
+          <div class="mt-5 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              @click="discardAndSwitch"
+              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+              Discard
+            </button>
+            <button
+              v-if="canSave"
+              type="button"
+              @click="saveAndSwitch"
+              class="rounded-lg bg-[#0A8276] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#086d63]">
+              Save & switch
+            </button>
+            <button
+              v-else
+              type="button"
+              @click="cancelSwitchDialog"
+              class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-slate-700">
+              Continue editing
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </main>
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, ref, watch } from "vue";
+  import { computed, nextTick, onMounted, ref, watch } from "vue";
   import { useEventListener, useMagicKeys } from "@vueuse/core";
   import type { EditableTableColumn } from "#editable-table/types/column";
   import {
@@ -180,7 +242,9 @@
   } from "~/composables/useRequirementsManager";
 
   const route = useRoute();
+  const router = useRouter();
   const storage = useRequirementsManagerStorage();
+  const isPageLoading = ref(true);
 
   const isPerformanceRequirement = (row: RequirementRow) => row.type === "Performance";
   const isFunctionalRequirement = (row: RequirementRow) => row.type === "Functional";
@@ -196,7 +260,7 @@
       type: "text",
       editable: true,
       required: true,
-      validate: (value) => (String(value || "").trim() ? null : "Key is required.")
+      validate: (v) => (String(v || "").trim() ? null : "Key is required.")
     },
     {
       rowKey: "name",
@@ -204,7 +268,7 @@
       type: "text",
       editable: true,
       required: true,
-      validate: (value) => (String(value || "").trim() ? null : "Name is required.")
+      validate: (v) => (String(v || "").trim() ? null : "Name is required.")
     },
     {
       rowKey: "type",
@@ -275,15 +339,22 @@
     return storage.value.projects.find((project) => project.id === projectId) ?? null;
   });
 
-  const workingProject = ref<ProjectRecord | null>(null);
+  const project = computed(() => currentProject.value);
   const activeSheetId = ref<string | null>(null);
+  const activeSheetDraft = ref<RequirementSheet | null>(null);
   const isTableValid = ref(true);
   const saveMessage = ref("Not saved yet");
 
   const renamingSheetId = ref<string | null>(null);
   const renameBuffer = ref("");
   const renameInputEl = ref<HTMLInputElement | null>(null);
+
   const sheetDeleteDialog = ref<{ id: string; name: string } | null>(null);
+  const canDeleteCurrentSheet = computed(() => !!project.value && project.value.sheets.length > 1);
+
+  const sheetSwitchDialog = ref(false);
+  const pendingSheetSwitchId = ref<string | null>(null);
+
   const tabsContainerEl = ref<HTMLElement | null>(null);
   const tabsStripEl = ref<HTMLElement | null>(null);
   const isTabPointerDown = ref(false);
@@ -301,47 +372,30 @@
 
   const isDeepEqual = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-  watch(
-    currentProject,
-    (project) => {
-      if (!project) {
-        workingProject.value = null;
-        activeSheetId.value = null;
-        return;
-      }
-
-      workingProject.value = JSON.parse(JSON.stringify(project)) as ProjectRecord;
-      activeSheetId.value = workingProject.value.sheets[0]?.id ?? null;
-      saveMessage.value = `Loaded from local storage at ${new Date().toLocaleTimeString()}`;
-    },
-    { immediate: true }
-  );
-
-  const activeSheet = computed(() => {
-    if (!workingProject.value || !activeSheetId.value) return null;
-    return workingProject.value.sheets.find((sheet) => sheet.id === activeSheetId.value) ?? null;
-  });
-
-  const allRowsAreDomainValid = computed(() => {
-    if (!workingProject.value) return false;
-
-    return workingProject.value.sheets.every((sheet) => sheet.requirements.every((row) => validateRequirement(row).length === 0));
+  const persistedActiveSheet = computed(() => {
+    if (!project.value || !activeSheetId.value) return null;
+    return project.value.sheets.find((sheet) => sheet.id === activeSheetId.value) ?? null;
   });
 
   const hasUnsavedChanges = computed(() => {
-    if (!workingProject.value || !currentProject.value) return false;
-    return !isDeepEqual(workingProject.value, currentProject.value);
+    if (!activeSheetDraft.value || !persistedActiveSheet.value) return false;
+    return !isDeepEqual(activeSheetDraft.value.requirements, persistedActiveSheet.value.requirements);
   });
 
-  const canSave = computed(() => !!activeSheet.value && hasUnsavedChanges.value && isTableValid.value && allRowsAreDomainValid.value);
-  const canDeleteCurrentSheet = computed(() => !!workingProject.value && workingProject.value.sheets.length > 1);
-  const draggingSheet = computed(() => {
-    if (!workingProject.value || !draggingSheetId.value) return null;
-    return workingProject.value.sheets.find((sheet) => sheet.id === draggingSheetId.value) ?? null;
+  const allRowsAreDomainValid = computed(() => {
+    if (!activeSheetDraft.value) return false;
+    return activeSheetDraft.value.requirements.every((row) => validateRequirement(row).length === 0);
   });
+
+  const canSave = computed(() => !!activeSheetDraft.value && hasUnsavedChanges.value && isTableValid.value && allRowsAreDomainValid.value);
+
+  const draggingSheet = computed(() => {
+    if (!project.value || !draggingSheetId.value) return null;
+    return project.value.sheets.find((sheet) => sheet.id === draggingSheetId.value) ?? null;
+  });
+
   const tabDragPreviewStyle = computed(() => {
     if (!isTabDragging.value || !tabDragPreviewDimensions.value) return null;
-
     const deltaX = tabCurrentX.value - tabDragStartX.value;
     const { width, height, left, top } = tabDragPreviewDimensions.value;
 
@@ -354,71 +408,213 @@
     };
   });
 
-  const addSheet = () => {
-    if (!workingProject.value) return;
+  function syncSetQuery(sheetId: string, replace = false) {
+    const query = { ...route.query, set: sheetId };
+    if (replace) return router.replace({ path: route.path, query });
+    return router.push({ path: route.path, query });
+  }
 
-    const nextIndex = workingProject.value.sheets.length + 1;
+  function loadSheetDraft(sheetId: string) {
+    const sheet = project.value?.sheets.find((item) => item.id === sheetId) ?? null;
+    activeSheetDraft.value = sheet ? (JSON.parse(JSON.stringify(sheet)) as RequirementSheet) : null;
+  }
+
+  function resolveInitialSheetId(targetProject: ProjectRecord) {
+    const routeSet = String(route.query.set || "");
+    if (targetProject.sheets.some((sheet) => sheet.id === routeSet)) return routeSet;
+    return targetProject.sheets[0]?.id ?? null;
+  }
+
+  watch(
+    project,
+    (nextProject) => {
+      if (!nextProject) {
+        activeSheetId.value = null;
+        activeSheetDraft.value = null;
+        return;
+      }
+
+      const nextSheetId = resolveInitialSheetId(nextProject);
+      if (!nextSheetId) {
+        activeSheetId.value = null;
+        activeSheetDraft.value = null;
+        return;
+      }
+
+      if (!activeSheetId.value || !nextProject.sheets.some((sheet) => sheet.id === activeSheetId.value)) {
+        activeSheetId.value = nextSheetId;
+        loadSheetDraft(nextSheetId);
+      } else if (!hasUnsavedChanges.value && persistedActiveSheet.value) {
+        loadSheetDraft(activeSheetId.value);
+      }
+
+      if (String(route.query.set || "") !== activeSheetId.value) {
+        syncSetQuery(activeSheetId.value, true);
+      }
+
+      saveMessage.value = `Loaded at ${new Date().toLocaleTimeString()}`;
+    },
+    { immediate: true, deep: true }
+  );
+
+  watch(
+    () => String(route.query.set || ""),
+    (nextSetId) => {
+      if (!project.value || !nextSetId) return;
+      if (!project.value.sheets.some((sheet) => sheet.id === nextSetId)) return;
+      if (activeSheetId.value === nextSetId) return;
+      requestSheetSwitch(nextSetId);
+    }
+  );
+
+  watch(
+    () => activeSheetDraft.value?.requirements,
+    (requirements) => {
+      if (!requirements) return;
+
+      requirements.forEach((row) => {
+        if (isPerformanceRequirement(row) && row.description) {
+          row.description = "";
+        }
+
+        if (isFunctionalRequirement(row)) {
+          if (row.unit) row.unit = "";
+          if (row.minimum) row.minimum = "";
+          if (row.typical) row.typical = "";
+          if (row.maximum) row.maximum = "";
+        }
+      });
+    },
+    { deep: true }
+  );
+
+  function switchToSheet(sheetId: string) {
+    if (!project.value) return;
+    const exists = project.value.sheets.some((sheet) => sheet.id === sheetId);
+    if (!exists) return;
+    activeSheetId.value = sheetId;
+    loadSheetDraft(sheetId);
+    syncSetQuery(sheetId);
+  }
+
+  function requestSheetSwitch(sheetId: string) {
+    if (!project.value || !activeSheetId.value || sheetId === activeSheetId.value) return;
+
+    if (hasUnsavedChanges.value) {
+      pendingSheetSwitchId.value = sheetId;
+      sheetSwitchDialog.value = true;
+      return;
+    }
+
+    switchToSheet(sheetId);
+  }
+
+  function cancelSwitchDialog() {
+    pendingSheetSwitchId.value = null;
+    sheetSwitchDialog.value = false;
+  }
+
+  function discardAndSwitch() {
+    const targetId = pendingSheetSwitchId.value;
+    cancelSwitchDialog();
+    if (!targetId) return;
+    switchToSheet(targetId);
+  }
+
+  function saveAndSwitch() {
+    const targetId = pendingSheetSwitchId.value;
+    if (!targetId) return;
+    const didSave = saveActiveSheet();
+    if (!didSave) return;
+    cancelSwitchDialog();
+    switchToSheet(targetId);
+  }
+
+  function saveActiveSheet() {
+    if (!project.value || !activeSheetId.value || !activeSheetDraft.value) return false;
+    if (!canSave.value) return false;
+
+    const projectIndex = storage.value.projects.findIndex((p) => p.id === project.value?.id);
+    if (projectIndex < 0) return false;
+
+    const sheetIndex = storage.value.projects[projectIndex]?.sheets.findIndex((sheet) => sheet.id === activeSheetId.value) ?? -1;
+    if (sheetIndex < 0) return false;
+
+    const timestamp = new Date().toISOString();
+
+    if (!storage.value.projects[projectIndex]?.sheets[sheetIndex]) return false;
+
+    storage.value.projects[projectIndex].sheets[sheetIndex].requirements = JSON.parse(JSON.stringify(activeSheetDraft.value.requirements));
+    storage.value.projects[projectIndex].updatedAt = timestamp;
+
+    loadSheetDraft(activeSheetId.value);
+    saveMessage.value = `Saved at ${new Date(timestamp).toLocaleString()}`;
+    return true;
+  }
+
+  function addSheet() {
+    if (!project.value) return;
+    const nextIndex = project.value.sheets.length + 1;
     const sheet = createDefaultSheet(`Requirement Set ${nextIndex}`);
+    project.value.sheets.push(sheet);
+    project.value.updatedAt = new Date().toISOString();
+    switchToSheet(sheet.id);
+  }
 
-    workingProject.value.sheets.push(sheet);
-    activeSheetId.value = sheet.id;
-  };
-
-  const requestDeleteSheet = (sheetId: string) => {
-    if (!workingProject.value) return;
-    const sheet = workingProject.value.sheets.find((item) => item.id === sheetId);
+  function requestDeleteSheet(sheetId: string) {
+    if (!project.value) return;
+    const sheet = project.value.sheets.find((item) => item.id === sheetId);
     if (!sheet) return;
     sheetDeleteDialog.value = { id: sheet.id, name: sheet.name };
-  };
+  }
 
-  const closeDeleteSheetDialog = () => {
+  function closeDeleteSheetDialog() {
     sheetDeleteDialog.value = null;
-  };
+  }
 
-  const confirmDeleteSheet = () => {
-    if (!workingProject.value || !sheetDeleteDialog.value) return;
-    if (!canDeleteCurrentSheet.value) {
+  function confirmDeleteSheet() {
+    if (!project.value || !sheetDeleteDialog.value || !canDeleteCurrentSheet.value) {
       closeDeleteSheetDialog();
       return;
     }
 
-    const sheetId = sheetDeleteDialog.value.id;
-    workingProject.value.sheets = workingProject.value.sheets.filter((item) => item.id !== sheetId);
+    const deletingId = sheetDeleteDialog.value.id;
+    project.value.sheets = project.value.sheets.filter((item) => item.id !== deletingId);
+    project.value.updatedAt = new Date().toISOString();
 
-    if (activeSheetId.value === sheetId) {
-      activeSheetId.value = workingProject.value.sheets[0]?.id ?? null;
+    if (activeSheetId.value === deletingId) {
+      const fallback = project.value.sheets[0]?.id ?? null;
+      if (fallback) switchToSheet(fallback);
     }
 
     closeDeleteSheetDialog();
-  };
+  }
 
-  const beginRenameSheet = async (sheetId: string, name: string) => {
+  async function beginRenameSheet(sheetId: string, name: string) {
     renamingSheetId.value = sheetId;
     renameBuffer.value = name;
     await nextTick();
     renameInputEl.value?.focus();
     renameInputEl.value?.select();
-  };
+  }
 
-  const commitRenameSheet = (sheetId: string) => {
-    if (!workingProject.value) return;
-
-    const sheet = workingProject.value.sheets.find((item) => item.id === sheetId);
-
+  function commitRenameSheet(sheetId: string) {
+    if (!project.value) return;
+    const sheet = project.value.sheets.find((item) => item.id === sheetId);
     if (!sheet) {
       renamingSheetId.value = null;
       return;
     }
-
     const nextName = renameBuffer.value.trim();
     sheet.name = nextName || sheet.name;
+    project.value.updatedAt = new Date().toISOString();
     renamingSheetId.value = null;
-  };
+  }
 
-  const cancelRenameSheet = () => {
+  function cancelRenameSheet() {
     renamingSheetId.value = null;
     renameBuffer.value = "";
-  };
+  }
 
   const resetBodyUserSelect = () => {
     if (previousBodyUserSelect.value === null) return;
@@ -440,17 +636,12 @@
   const collectTabMetrics = (activeId: string | null) => {
     const strip = tabsStripEl.value;
     if (!strip) return [];
-
     const stripRect = strip.getBoundingClientRect();
 
     return Array.from(strip.querySelectorAll<HTMLElement>("[data-sheet-id]"))
       .map((tab) => {
         const rect = tab.getBoundingClientRect();
-        return {
-          id: tab.dataset.sheetId ?? "",
-          left: rect.left - stripRect.left,
-          width: rect.width
-        };
+        return { id: tab.dataset.sheetId ?? "", left: rect.left - stripRect.left, width: rect.width };
       })
       .filter((metric) => metric.id && metric.id !== activeId)
       .sort((a, b) => a.left - b.left);
@@ -462,9 +653,12 @@
     if (!metrics.length) return 0;
 
     const insertionThreshold = isDraggingRight ? 0.1 : 0.9;
-
     for (let index = 0; index < metrics.length; index++) {
-      const { left, width } = metrics[index];
+      const metric = metrics[index];
+
+      if (!metric) continue;
+
+      const { left, width } = metric;
       if (relativeX < left + width * insertionThreshold) return index;
     }
 
@@ -472,44 +666,46 @@
   };
 
   const reorderSheets = (insertionIndex: number | null) => {
-    if (!workingProject.value) return;
-    if (insertionIndex === null || !draggingSheetId.value) return;
+    if (!project.value || insertionIndex === null || !draggingSheetId.value) return;
 
-    const currentSheets = [...workingProject.value.sheets];
+    const currentSheets = [...project.value.sheets];
     const activeId = draggingSheetId.value;
     const activeIndex = currentSheets.findIndex((sheet) => sheet.id === activeId);
     if (activeIndex === -1) return;
 
-    const activeSheet = currentSheets[activeIndex];
-    const remainingSheets = currentSheets.filter((sheet) => sheet.id !== activeId);
+    const active = currentSheets[activeIndex];
+    const remaining = currentSheets.filter((sheet) => sheet.id !== activeId);
+    const clampedIndex = Math.min(Math.max(0, insertionIndex), remaining.length);
 
-    const clampedIndex = Math.min(Math.max(0, insertionIndex), remainingSheets.length);
-    remainingSheets.splice(clampedIndex, 0, activeSheet);
+    if (!active) return;
 
-    workingProject.value.sheets = remainingSheets;
-    draggingSheetIndex.value = remainingSheets.findIndex((sheet) => sheet.id === activeId);
+    remaining.splice(clampedIndex, 0, active);
+
+    project.value.sheets = remaining;
+    project.value.updatedAt = new Date().toISOString();
+    draggingSheetIndex.value = remaining.findIndex((sheet) => sheet.id === activeId);
   };
 
   const beginTabDragging = (index: number) => {
     const container = tabsContainerEl.value;
     const originTab = tabPointerOriginEl.value;
-    if (!container || !originTab || !workingProject.value) return;
+    if (!container || !originTab || !project.value) return;
 
     const containerRect = container.getBoundingClientRect();
     const tabRect = originTab.getBoundingClientRect();
-    const activeSheet = workingProject.value.sheets[index];
-    if (!activeSheet) return;
+    const active = project.value.sheets[index];
+    if (!active) return;
 
     isTabDragging.value = true;
     draggingSheetIndex.value = index;
-    draggingSheetId.value = activeSheet.id;
+    draggingSheetId.value = active.id;
     tabDragPreviewDimensions.value = {
       width: tabRect.width,
       height: tabRect.height,
       left: tabRect.left - containerRect.left,
       top: tabRect.top - containerRect.top
     };
-    initialSheetOrder.value = [...workingProject.value.sheets];
+    initialSheetOrder.value = [...project.value.sheets];
 
     previousBodyUserSelect.value = document.body.style.userSelect;
     document.body.style.userSelect = "none";
@@ -547,13 +743,12 @@
         suppressTabClick.value = false;
       }
     }
-
     resetTabDragState();
   };
 
   const cancelTabDrag = () => {
-    if (isTabDragging.value && workingProject.value && initialSheetOrder.value.length) {
-      workingProject.value.sheets = [...initialSheetOrder.value];
+    if (isTabDragging.value && project.value && initialSheetOrder.value.length) {
+      project.value.sheets = [...initialSheetOrder.value];
     }
     resetTabDragState();
   };
@@ -575,7 +770,7 @@
       event.preventDefault();
       return;
     }
-    activeSheetId.value = sheetId;
+    requestSheetSwitch(sheetId);
   };
 
   const onSheetDoubleClick = (sheetId: string, name: string, event: MouseEvent) => {
@@ -586,69 +781,28 @@
     beginRenameSheet(sheetId, name);
   };
 
-  const saveProject = () => {
-    if (!workingProject.value || !currentProject.value) return;
-    if (!canSave.value || !activeSheet.value) return;
-
-    const timestamp = new Date().toISOString();
-
-    const updatedProject: ProjectRecord = {
-      ...workingProject.value,
-      updatedAt: timestamp
-    };
-
-    const projectIndex = storage.value.projects.findIndex((project) => project.id === currentProject.value?.id);
-
-    if (projectIndex < 0) return;
-
-    storage.value.projects[projectIndex] = JSON.parse(JSON.stringify(updatedProject)) as ProjectRecord;
-    workingProject.value = JSON.parse(JSON.stringify(updatedProject)) as ProjectRecord;
-
-    saveMessage.value = `Saved at ${new Date(timestamp).toLocaleString()}`;
-  };
-
-  watch(
-    [workingProject, currentProject],
-    ([working, current]) => {
-      if (!working || !current) return;
-      if (isDeepEqual(working, current)) return;
-
-      saveMessage.value = "Unsaved changes";
-    },
-    { deep: true }
-  );
-
-  watch(
-    () => workingProject.value?.sheets,
-    (sheets) => {
-      if (!sheets) return;
-
-      sheets.forEach((sheet) => {
-        sheet.requirements.forEach((row) => {
-          if (isPerformanceRequirement(row) && row.description) {
-            row.description = "";
-          }
-
-          if (isFunctionalRequirement(row)) {
-            if (row.unit) row.unit = "";
-            if (row.minimum) row.minimum = "";
-            if (row.typical) row.typical = "";
-            if (row.maximum) row.maximum = "";
-          }
-        });
-      });
-    },
-    { deep: true }
-  );
-
   if (import.meta.client) {
     useEventListener(window, "pointermove", updateTabDragPosition, { passive: false });
     useEventListener(window, "pointerup", commitTabDrag);
     useEventListener(window, "pointercancel", cancelTabDrag);
   }
 
-  watch(escapeKey, (pressed) => {
-    if (!pressed || !isTabDragging.value) return;
-    cancelTabDrag();
+  watch(
+    () => escapeKey?.value,
+    (pressed) => {
+      if (!pressed) return;
+      if (isTabDragging.value) cancelTabDrag();
+      if (sheetSwitchDialog.value) cancelSwitchDialog();
+    }
+  );
+
+  onMounted(() => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        isPageLoading.value = false;
+      });
+      return;
+    }
+    isPageLoading.value = false;
   });
 </script>

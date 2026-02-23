@@ -18,6 +18,7 @@ interface ColumnPreferencesOptions<TRow extends Record<string, any>> {
   indexColumnWidth: string;
   hiddenIndicatorWidth?: string;
   storageKey?: string;
+  disabled?: boolean;
   rowsLength?: Ref<number> | ComputedRef<number>;
   onApplySort?: (column: EditableTableColumn<TRow>, direction: "asc" | "desc") => void;
 }
@@ -89,6 +90,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
   }
 
   function resolveStorageKey() {
+    if (options.disabled) return null;
     if (options.storageKey) return options.storageKey;
     if (!initialColumnSignature.value) return null;
     const locationKey = typeof window !== "undefined" ? window.location.pathname : "table";
