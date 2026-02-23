@@ -6,13 +6,13 @@
   import type { EditableTableColumn } from "#editable-table/types/column";
   import ContextMenu from "#editable-table/components/ContextMenu/ContextMenu.vue";
 
-  interface EditableTableHeaderMenuProps {
+  export interface EditableTableHeaderMenuProps<TRow extends Record<string, any> = Record<string, any>> {
     columns: EditableTableColumn<TRow>[];
     hiddenColumnKeys: string[];
     position: { left: number; top: number };
   }
 
-  const props = defineProps<EditableTableHeaderMenuProps>();
+  const props = defineProps<EditableTableHeaderMenuProps<TRow>>();
   const isVisible = defineModel<boolean>({ default: false });
 
   const emit = defineEmits<{

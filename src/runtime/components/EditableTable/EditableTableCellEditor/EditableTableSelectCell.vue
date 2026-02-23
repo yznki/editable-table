@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="TValue extends string | number | boolean | null">
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-  interface EditableTableSelectCellProps {
+  export interface EditableTableSelectCellProps {
     isEditable?: boolean;
     options?: string[];
     allowCustomOptions?: boolean;

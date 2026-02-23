@@ -5,14 +5,6 @@
 
   type StatType = "sum" | "average" | "minimum" | "maximum" | "count";
 
-  interface EditableTableFooterProps {
-    rows: TRow[];
-    columns: EditableTableColumn<TRow>[];
-    selectionRange: { startRowIndex: number; endRowIndex: number; startColumnIndex: number; endColumnIndex: number } | null;
-    selectedRowIndexes: number[];
-    selectedColumnIndexes: number[];
-  }
-
   const statOptions: { value: StatType; label: string }[] = [
     { value: "sum", label: "Sum" },
     { value: "average", label: "Average" },
@@ -22,7 +14,13 @@
   ];
   const selectedStat = ref<StatType>("sum");
 
-  const props = defineProps<EditableTableFooterProps>();
+  const props = defineProps<{
+    rows: TRow[];
+    columns: EditableTableColumn<TRow>[];
+    selectionRange: { startRowIndex: number; endRowIndex: number; startColumnIndex: number; endColumnIndex: number } | null;
+    selectedRowIndexes: number[];
+    selectedColumnIndexes: number[];
+  }>();
 
   const footerRow = cva("sticky bottom-0 z-10 border-t border-gray-200 bg-white/95 backdrop-blur flex justify-end");
   const footerContent = cva("flex items-center justify-end gap-3 px-3 py-2 text-xs text-gray-600");

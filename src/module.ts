@@ -11,7 +11,10 @@ export interface ModuleOptions {
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: "editable-table",
-    configKey: "editableTable"
+    configKey: "editableTable",
+    compatibility: {
+      nuxt: ">=4.0.0"
+    }
   },
 
   defaults: {},
@@ -63,7 +66,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (shouldInstallTailwind) {
       await installModule("@nuxtjs/tailwindcss", {
-        configPath: resolver.resolve("../tailwind.config"),
+        configPath: resolver.resolve("../tailwind.config.ts"),
         cssPath: [resolver.resolve("../assets/tailwind/tailwind.css"), { injectPosition: "first" }],
         exposeConfig: true
       });

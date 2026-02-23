@@ -21,7 +21,7 @@
   import { useMagicKeys } from "@vueuse/core";
   import ContextMenu, { type ContextMenuPosition } from "#editable-table/components/ContextMenu/ContextMenu.vue";
 
-  interface EditableTableColumnMenuProps {
+  export interface EditableTableColumnMenuProps<TRow extends Record<string, any> = Record<string, any>> {
     column: EditableTableColumn<TRow>;
     columnIndex: number;
     columnsLength: number;
@@ -30,7 +30,7 @@
     canChangeType?: boolean;
   }
 
-  const props = defineProps<EditableTableColumnMenuProps>();
+  const props = defineProps<EditableTableColumnMenuProps<TRow>>();
 
   const emit = defineEmits<{
     (event: "select-type", type: ColumnType): void;

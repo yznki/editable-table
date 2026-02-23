@@ -121,7 +121,7 @@ Type handling:
 
 ## Styling
 
-Tailwind is already wired through Vite and the module injects base styles from `src/runtime/tailwind.css`. The root element carries `data-editable-table-root` if you need to target it. You can extend Tailwind utilities in your app to theme the table.
+Tailwind is already wired through Vite and the module injects base styles from `assets/tailwind/tailwind.css`. The root element carries `data-editable-table-root` if you need to target it. You can extend Tailwind utilities in your app to theme the table.
 
 ## Local development
 

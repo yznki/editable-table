@@ -8,16 +8,9 @@
   import { useSmartTooltip } from "#editable-table/composables/useSmartTooltip";
   import { type ColumnType } from "#editable-table/types/column";
 
-  interface SelectionRange {
-    startRowIndex: number;
-    endRowIndex: number;
-    startColumnIndex: number;
-    endColumnIndex: number;
-  }
-
   type ArrowNavigationKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
-  interface EditableTableCellProps {
+  const props = defineProps<{
     rowId: string | number;
     columnKey: TKey;
     columnType?: ColumnType;
@@ -36,10 +29,13 @@
     rowCount: number;
     columnCount: number;
 
-    selectionRange?: SelectionRange | null;
-  }
-
-  const props = defineProps<EditableTableCellProps>();
+    selectionRange?: {
+      startRowIndex: number;
+      endRowIndex: number;
+      startColumnIndex: number;
+      endColumnIndex: number;
+    } | null;
+  }>();
 
   const emit = defineEmits<{
     (event: "cell-select", payload: { rowIndex: number; columnIndex: number; shift: boolean }): void;
