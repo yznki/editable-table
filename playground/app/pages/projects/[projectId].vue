@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from "vue";
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
   import { useMagicKeys } from "@vueuse/core";
   import {
     createDefaultSheet,
@@ -193,6 +193,17 @@
   }
 
   /**
+   * Warns before browser refresh/close when there are unsaved changes.
+   * @param event Browser beforeunload event.
+   * @returns void
+   */
+  function onBeforeUnload(event: BeforeUnloadEvent) {
+    if (!hasUnsavedChanges.value) return;
+    event.preventDefault();
+    event.returnValue = "";
+  }
+
+  /**
    * Persists active sheet draft when valid and changed.
    * @returns true when save succeeds, otherwise false.
    */
@@ -368,6 +379,7 @@
   );
 
   onMounted(() => {
+    window.addEventListener("beforeunload", onBeforeUnload);
     if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(() => {
         isPageLoading.value = false;
@@ -375,6 +387,10 @@
       return;
     }
     isPageLoading.value = false;
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener("beforeunload", onBeforeUnload);
   });
 </script>
 

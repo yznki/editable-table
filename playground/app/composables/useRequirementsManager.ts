@@ -1,6 +1,6 @@
 import { useLocalStorage } from "@vueuse/core";
 
-export type RequirementType = "Performance" | "Functional" | "Condition" | "DesignCharacteristic";
+export type RequirementType = "Performance" | "Functional" | "Condition" | "Design Characteristic";
 export type Asil = "Qm" | "JamaA" | "JamaB" | "JamaC" | "JamaD";
 
 /**
@@ -143,8 +143,9 @@ interface RequirementsManagerStorage {
   projects: ProjectRecord[];
 }
 
-export const REQUIREMENT_TYPES: RequirementType[] = ["Performance", "Functional", "Condition", "DesignCharacteristic"];
+export const REQUIREMENT_TYPES: RequirementType[] = ["Performance", "Functional", "Condition", "Design Characteristic"];
 export const ASIL_VALUES: Asil[] = ["Qm", "JamaA", "JamaB", "JamaC", "JamaD"];
+const LEGACY_REQUIREMENT_TYPE_ALIASES = new Set(["DesignCharacteristic"]);
 
 const STORAGE_KEY = "requirements-manager-storage-v1";
 const NEXT_PROJECT_ID_KEY = "requirements-manager-next-project-id";
@@ -247,7 +248,7 @@ export function validateRequirement(row: RequirementRow): RequirementValidationE
     errors.push({ field: "name", message: "Name is required." });
   }
 
-  if (!REQUIREMENT_TYPES.includes(row.type)) {
+  if (!REQUIREMENT_TYPES.includes(row.type) && !LEGACY_REQUIREMENT_TYPE_ALIASES.has(row.type)) {
     errors.push({ field: "type", message: "Type is invalid." });
   }
 

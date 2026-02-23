@@ -2,7 +2,7 @@
   import { computed, ref, watch } from "vue";
   import { cva } from "class-variance-authority";
   import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-  import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+  import { faArrowsRotate, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
   import type { EditableTableColumn } from "#editable-table/types/column";
   import ContextMenu from "#editable-table/components/ContextMenu/ContextMenu.vue";
 
@@ -18,6 +18,7 @@
   const emit = defineEmits<{
     (event: "toggle-column", columnIndex: number): void;
     (event: "show-hidden"): void;
+    (event: "reset-table-state"): void;
   }>();
 
   const isVisibilityMenuOpen = ref(false);
@@ -157,6 +158,13 @@
           </button>
         </div>
       </ContextMenu>
+      <div class="my-1 border-t border-gray-100" />
+      <button type="button" :class="headerMenuItem({ hidden: false })" @click="emit('reset-table-state')">
+        <span class="flex min-w-0 items-center gap-2">
+          <FontAwesomeIcon :icon="faArrowsRotate" class="h-4 w-4 text-gray-400" />
+          <span class="truncate">Reset table state</span>
+        </span>
+      </button>
     </div>
   </ContextMenu>
 </template>

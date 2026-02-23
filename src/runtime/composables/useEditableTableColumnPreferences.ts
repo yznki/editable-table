@@ -11,6 +11,7 @@ type StoredTablePreferences = {
   columnOrder: string[];
   hiddenColumns?: string[];
   columnTypes?: Record<string, ColumnType>;
+  columnWidths?: Record<string, number | string>;
   sort?: { columnKey: string; direction: "asc" | "desc" };
 };
 
@@ -37,11 +38,14 @@ interface ColumnPreferencesOptions<TRow extends Record<string, any>> {
 
 export function useEditableTableColumnPreferences<TRow extends Record<string, any>>(options: ColumnPreferencesOptions<TRow>) {
   const hiddenIndicatorWidth = options.hiddenIndicatorWidth ?? "0.6rem";
+  const minimumExplicitColumnWidthInPixels = 80;
   const storedSort = ref<StoredTablePreferences["sort"] | null>(null);
   const initialColumnSignature = ref<string | null>(null);
   const isApplyingPreferences = ref(false);
   const hasLoadedPreferences = ref(false);
   const hasAppliedStoredSort = ref(false);
+  const initialColumnsSnapshot = ref<EditableTableColumn<TRow>[]>([]);
+  const isClientEnvironment = typeof window !== "undefined";
 
   const rowsLength = options.rowsLength ?? computed(() => 0);
 
@@ -91,8 +95,67 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
 
   const visibleColumns = computed(() => visibleColumnEntries.value.map((entry) => entry.column));
 
+  function clamp(value: number, minimum: number, maximum: number) {
+    return Math.min(Math.max(value, minimum), maximum);
+  }
+
+  function resolveColumnTrack(column: EditableTableColumn<TRow>) {
+    const minimumWidth = getMinimumWidth(column);
+
+    if (typeof column.width === "number" && Number.isFinite(column.width)) {
+      const width = Math.max(minimumExplicitColumnWidthInPixels, Math.floor(column.width));
+      return `minmax(${minimumWidth}px, ${width}px)`;
+    }
+
+    if (typeof column.width === "string" && column.width.trim().length) {
+      const widthValue = column.width.trim();
+      if (widthValue.startsWith("minmax(")) {
+        return widthValue;
+      }
+      if (widthValue.endsWith("fr")) {
+        return `minmax(${minimumWidth}px, ${widthValue})`;
+      }
+      return `minmax(${minimumWidth}px, ${widthValue})`;
+    }
+
+    const columnWeight = resolveColumnWeight(column);
+    return `minmax(${minimumWidth}px, ${columnWeight}fr)`;
+  }
+
+  function getMinimumWidth(column: EditableTableColumn<TRow>) {
+    const configuredMinimumWidth = typeof column.minWidth === "number" && Number.isFinite(column.minWidth) ? Math.floor(column.minWidth) : 96;
+    return Math.max(64, configuredMinimumWidth);
+  }
+
+  function resolveColumnWeight(column: EditableTableColumn<TRow>) {
+    if (column.type === "boolean") {
+      return 0.8;
+    }
+
+    if (column.type === "number") {
+      return 0.9;
+    }
+
+    if (column.type === "date") {
+      return 1.05;
+    }
+
+    if (column.type === "select") {
+      const optionLengths = (column.options ?? []).map((option) => option.length);
+      const longestOptionLength = optionLengths.length ? Math.max(...optionLengths) : 0;
+      const longestLabelLength = Math.max(column.title.length, longestOptionLength);
+      const extraWeight = clamp((longestLabelLength - 12) / 14, 0, 0.9);
+      return 1.25 + extraWeight;
+    }
+
+    return 1;
+  }
+
   const gridTemplateColumns = computed(() => {
-    const columnTracks = columnRenderEntries.value.map((entry) => (entry.type === "indicator" ? hiddenIndicatorWidth : "minmax(0, 1fr)"));
+    const columnTracks = columnRenderEntries.value.map((entry) => {
+      if (entry.type === "indicator") return hiddenIndicatorWidth;
+      return resolveColumnTrack(entry.column);
+    });
     const tracks = columnTracks.length ? `${columnTracks.join(" ")}` : "";
     return `${options.indexColumnWidth}${tracks ? ` ${tracks}` : ""}`;
   });
@@ -109,8 +172,19 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     return `editable-table:${locationKey}:${initialColumnSignature.value}`;
   }
 
+  function clearStoredPreferences() {
+    if (!isClientEnvironment) return;
+    const key = resolveStorageKey();
+    if (!key) return;
+    try {
+      getPreferencesStore(key).value = null;
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
   function loadStoredPreferences(): StoredTablePreferences | null {
-    if (!import.meta.client) return null;
+    if (!isClientEnvironment) return null;
     const key = resolveStorageKey();
     if (!key) return null;
 
@@ -124,7 +198,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
   }
 
   function saveStoredPreferences(preferences: StoredTablePreferences) {
-    if (!import.meta.client) return;
+    if (!isClientEnvironment) return;
     const key = resolveStorageKey();
     if (!key) return;
 
@@ -157,13 +231,16 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
 
     const hiddenSet = new Set(preferences.hiddenColumns ?? []);
     const typeMap = preferences.columnTypes ?? {};
+    const widthMap = preferences.columnWidths ?? {};
 
     let nextColumns = orderedColumns.map((column) => {
       const key = getColumnKey(column);
       const nextType = typeMap[key] ?? column.type;
+      const nextWidth = widthMap[key] ?? column.width;
       return {
         ...column,
         type: nextType,
+        width: nextWidth,
         hidden: hiddenSet.has(key)
       };
     });
@@ -194,11 +271,19 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
       return accumulator;
     }, {});
 
+    const columnWidths = options.columns.value.reduce<Record<string, number | string>>((accumulator, column) => {
+      if (typeof column.width === "number" || typeof column.width === "string") {
+        accumulator[getColumnKey(column)] = column.width;
+      }
+      return accumulator;
+    }, {});
+
     saveStoredPreferences({
       version: 1,
       columnOrder,
       hiddenColumns,
       columnTypes,
+      columnWidths,
       sort: storedSort.value ?? undefined
     });
   }
@@ -233,6 +318,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     (nextColumns) => {
       if (initialColumnSignature.value || !nextColumns.length) return;
       initialColumnSignature.value = nextColumns.map((column) => getColumnKey(column)).join("|");
+      initialColumnsSnapshot.value = nextColumns.map((column) => ({ ...column }));
     },
     { immediate: true }
   );
@@ -241,6 +327,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     [options.columns, initialColumnSignature],
     () => {
       if (hasLoadedPreferences.value) return;
+      if (!isClientEnvironment) return;
       if (!initialColumnSignature.value || !options.columns.value.length) return;
       const preferences = loadStoredPreferences();
       if (preferences) {
@@ -255,9 +342,10 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     options.columns,
     () => {
       if (!hasLoadedPreferences.value) return;
+      if (!isClientEnvironment) return;
       persistPreferences();
     },
-    { deep: true }
+    { deep: true, flush: "sync" }
   );
 
   watch(
@@ -287,6 +375,15 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     { immediate: true }
   );
 
+  function resetTableState() {
+    clearStoredPreferences();
+    storedSort.value = null;
+    hasAppliedStoredSort.value = true;
+
+    if (!initialColumnsSnapshot.value.length) return;
+    options.columns.value = initialColumnsSnapshot.value.map((column) => ({ ...column })) as EditableTableColumn<TRow>[];
+  }
+
   return {
     columnRenderEntries,
     visibleColumnEntries,
@@ -295,6 +392,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     hiddenIndicatorWidth,
     hideColumn,
     revealHiddenColumns,
-    recordSort
+    recordSort,
+    resetTableState
   };
 }

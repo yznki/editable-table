@@ -24,6 +24,7 @@ export interface EditableTableColumn<TRow extends Record<string, any> = Record<s
   validate?: ((value: unknown, row: TRow) => string | null | undefined | boolean) | Array<(value: unknown, row: TRow) => string | null | undefined | boolean>;
 
   width?: number | string;
+  minWidth?: number;
 
   hidden?: boolean;
 }

@@ -72,6 +72,14 @@
     return Math.min(Math.max(value, min), max);
   }
 
+  function estimateDropdownWidth(viewportWidth: number, triggerWidth: number) {
+    const minimumWidth = Math.max(triggerWidth, 176);
+    const maximumWidth = Math.min(360, viewportWidth - 16);
+    const longestEntryLength = dropdownEntries.value.reduce((accumulator, entry) => Math.max(accumulator, entry.label.length), 0);
+    const estimatedWidth = longestEntryLength * 8 + 56;
+    return clamp(estimatedWidth, minimumWidth, maximumWidth);
+  }
+
   function computeDropdownPosition() {
     if (!isDropdownOpen.value) return;
     const trigger = inputElement.value;
@@ -93,7 +101,7 @@
 
     const availableHeight = shouldOpenUp ? spaceAbove : spaceBelow;
     const resolvedHeight = clamp(availableHeight, 80, maxHeight);
-    const width = Math.min(triggerRect.width, viewportWidth - padding * 2);
+    const width = estimateDropdownWidth(viewportWidth, triggerRect.width);
     const left = clamp(triggerRect.left, padding, viewportWidth - width - padding);
 
     let top = placement.value === "bottom" ? triggerRect.bottom + gap : triggerRect.top - resolvedHeight - gap;
@@ -253,7 +261,7 @@
               :class="highlightedIndex === optionIndex ? 'bg-gray-50' : ''"
               @mousedown.prevent="selectOption(entry.label)"
               @click.prevent="selectOption(entry.label)">
-              <span class="truncate">{{ entry.label }}</span>
+              <span class="block whitespace-nowrap">{{ entry.label }}</span>
             </button>
           </div>
         </teleport>

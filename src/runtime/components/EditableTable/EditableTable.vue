@@ -12,6 +12,7 @@
   import { useEditableTableClipboard, type TableSelectionRange } from "#editable-table/composables/useEditableTableClipboard";
   import { useEditableTableNavigation, type NavigationSelectionState } from "#editable-table/composables/useEditableTableNavigation";
   import { useEditableTableColumnDrag } from "#editable-table/composables/useEditableTableColumnDrag";
+  import { useEditableTableColumnResize } from "#editable-table/composables/useEditableTableColumnResize";
   import { useEditableTableHistory } from "#editable-table/composables/useEditableTableHistory";
   import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
   import { useEditableTableRows } from "#editable-table/composables/useEditableTableRows";
@@ -140,17 +141,25 @@
     { ignore: ["[data-context-menu]"] }
   );
 
-  const { columnRenderEntries, visibleColumnEntries, visibleColumns, gridTemplateColumns, hideColumn, revealHiddenColumns, recordSort } =
-    useEditableTableColumnPreferences<TRow>({
-      columns,
-      indexColumnWidth,
-      storageKey: props.storageKey,
-      disabled: props.disableColumnPreferences,
-      rowsLength: computed(() => rows.value.length),
-      onApplySort(column, direction) {
-        sortRowsByColumnInternal(column, direction);
-      }
-    });
+  const {
+    columnRenderEntries,
+    visibleColumnEntries,
+    visibleColumns,
+    gridTemplateColumns,
+    hideColumn,
+    revealHiddenColumns,
+    recordSort,
+    resetTableState
+  } = useEditableTableColumnPreferences<TRow>({
+    columns,
+    indexColumnWidth,
+    storageKey: props.storageKey,
+    disabled: props.disableColumnPreferences,
+    rowsLength: computed(() => rows.value.length),
+    onApplySort(column, direction) {
+      sortRowsByColumnInternal(column, direction);
+    }
+  });
 
   const gridStyle = computed(() => ({
     gridTemplateColumns: gridTemplateColumns.value
@@ -810,6 +819,14 @@
     hideColumn(columnIndex);
   }
 
+  function handleResetTableState() {
+    resetTableState();
+    closeColumnMenu();
+    clearActive();
+    selectionAnchor.value = null;
+    selectionEnd.value = null;
+  }
+
   function normalizeForSort(value: unknown, type: ColumnType) {
     if (value === null || value === undefined) {
       return { comparable: null, isNullish: true };
@@ -919,6 +936,16 @@
   });
 
   const {
+    isResizing: isColumnResizing,
+    onResizeHandlePointerDown,
+    resizingColumnKey
+  } = useEditableTableColumnResize<TRow>({
+    columns,
+    headerRowElement,
+    visibleColumnEntries
+  });
+
+  const {
     dragPreviewStyle: rowDragPreviewStyle,
     draggingRow,
     draggingRowIndex,
@@ -943,6 +970,23 @@
   );
 
   watch(isDragging, (active) => {
+    if (active) {
+      isColumnMenuVisible.value = false;
+      columnMenuIndex.value = null;
+      shouldBlockHeaderClick.value = true;
+      return;
+    }
+
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        shouldBlockHeaderClick.value = false;
+      });
+    } else {
+      shouldBlockHeaderClick.value = false;
+    }
+  });
+
+  watch(isColumnResizing, (active) => {
     if (active) {
       isColumnMenuVisible.value = false;
       columnMenuIndex.value = null;
@@ -1044,7 +1088,9 @@
 
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
   const headerRow = cva("relative grid border-b border-gray-300 bg-gray-50 font-medium");
-  const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
+  const headerCell = cva(
+    "relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-100/35"
+  );
   const indexCell = cva("h-11 px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const draggingRowClass = "bg-accent-50/40 opacity-70";
@@ -1055,6 +1101,8 @@
     "flex items-center gap-1 rounded-full border border-gray-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 shadow-sm transition hover:border-gray-300 hover:text-gray-600"
   );
   const bodyWrapper = cva("relative flex-1 overflow-auto");
+  const columnResizeHandle = cva("absolute right-0 top-0 z-10 h-full w-3 translate-x-1/2 cursor-col-resize select-none touch-none");
+  const columnResizeHandleIndicator = cva("absolute right-1/2 top-1/2 h-6 w-px -translate-y-1/2 bg-slate-300 transition-colors");
   const addRowButton = cva(
     "col-span-full flex items-center justify-center gap-1 bg-gray-50 py-2 text-sm text-gray-700 transition hover:bg-gray-100 focus:outline-none focus:ring-0"
   );
@@ -1098,6 +1146,19 @@
               size="xs" />
             <span class="truncate">{{ entry.column.title }}</span>
           </div>
+          <button
+            v-if="entry.visibleIndex < visibleColumns.length - 1"
+            type="button"
+            data-column-resize-handle="true"
+            :class="columnResizeHandle()"
+            :aria-label="`Resize ${entry.column.title}`"
+            @pointerdown.stop.prevent="onResizeHandlePointerDown(entry.columnIndex, $event)">
+            <span
+              :class="[
+                columnResizeHandleIndicator(),
+                resizingColumnKey === String(entry.column.rowKey) ? 'bg-accent-100' : 'bg-slate-300'
+              ]" />
+          </button>
         </div>
         <button
           v-else
@@ -1114,7 +1175,8 @@
     </div>
 
     <div v-if="isDragging && dragPreviewStyle && draggingColumn" class="pointer-events-none absolute z-20" :style="dragPreviewStyle">
-      <div class="editable-table-drag-preview rounded-md border bg-white px-3 py-2 shadow-lg">
+      <div
+        class="rounded-md border border-[rgb(50,75,115)] bg-white px-3 py-2 shadow-[0_0_0_2px_rgba(65,111,164,0.25),0_10px_24px_rgba(15,23,42,0.14)]">
         {{ draggingColumn.title }}
       </div>
     </div>
@@ -1123,18 +1185,20 @@
       v-if="isRowDragging && rowDragPreviewStyle && draggingRowIndex !== null && draggingRow"
       class="pointer-events-none absolute z-20"
       :style="rowDragPreviewStyle">
-      <div class="editable-table-row-drag-preview grid overflow-hidden rounded-md border bg-white shadow-lg" :style="gridStyle">
-        <div class="editable-table-row-drag-index px-2 py-2 text-right text-xs font-semibold">
+      <div
+        class="grid overflow-hidden rounded-md border border-[rgb(50,75,115)] bg-white shadow-[0_0_0_2px_rgba(65,111,164,0.25),0_10px_24px_rgba(15,23,42,0.14)]"
+        :style="gridStyle">
+        <div class="px-2 py-2 text-right text-xs font-semibold text-slate-600">
           {{ draggingRowIndex + 1 }}
         </div>
         <template
           v-for="entry in columnRenderEntries"
           :key="entry.type === 'column' ? `drag-${String(entry.column.rowKey)}` : `drag-${entry.id}`">
-          <div v-if="entry.type === 'column'" class="editable-table-row-drag-cell px-3 py-2 text-sm text-gray-800 border-l truncate">
+          <div v-if="entry.type === 'column'" class="truncate px-3 py-2 text-sm text-gray-800">
             {{ formatRowPreviewValue(draggingRow[entry.column.rowKey as keyof TRow], entry.column.type) }}
           </div>
-          <div v-else class="editable-table-row-drag-cell flex items-center justify-center border-l">
-            <span class="editable-table-row-drag-separator h-3 w-px rounded-full" />
+          <div v-else class="flex items-center justify-center">
+            <span class="h-3 w-px rounded-full bg-slate-300" />
           </div>
         </template>
       </div>
@@ -1234,6 +1298,7 @@
       :columns="columns"
       :hidden-column-keys="hiddenColumnKeys"
       @toggle-column="toggleColumnVisibility"
-      @show-hidden="() => revealHiddenColumns(hiddenColumnKeys)" />
+      @show-hidden="() => revealHiddenColumns(hiddenColumnKeys)"
+      @reset-table-state="handleResetTableState" />
   </div>
 </template>
