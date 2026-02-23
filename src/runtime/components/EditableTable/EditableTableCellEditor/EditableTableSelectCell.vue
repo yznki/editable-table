@@ -7,7 +7,11 @@
     allowCustomOptions?: boolean;
   }
 
-  const props = withDefaults(defineProps<EditableTableSelectCellProps>(), { isEditable: false, options: () => [], allowCustomOptions: true });
+  const props = withDefaults(defineProps<EditableTableSelectCellProps>(), {
+    isEditable: false,
+    options: () => [],
+    allowCustomOptions: true
+  });
 
   const value = defineModel<TValue>();
 
@@ -51,18 +55,7 @@
     return entries;
   });
 
-  const inputClass = "block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0";
-
-  function colorsForOption(option: string) {
-    const hash = Array.from(option).reduce((accumulator, character) => (accumulator * 31 + character.charCodeAt(0)) % 360, 0);
-    const hue = hash % 360;
-    return {
-      background: `hsl(${hue}, 75%, 92%)`,
-      border: `hsl(${hue}, 70%, 80%)`,
-      text: `hsl(${hue}, 35%, 28%)`,
-      dot: `hsl(${hue}, 65%, 48%)`
-    };
-  }
+  const inputClass = "w-full bg-transparent text-sm leading-6 outline-none border-none p-0 m-0";
 
   function selectOption(option: string) {
     value.value = option as TValue;
@@ -220,27 +213,17 @@
 </script>
 
 <template>
-  <div class="relative w-full min-h-7">
-    <div class="flex items-center">
+  <div class="relative w-full">
+    <div class="flex items-center w-full h-full">
       <template v-if="!isEditable">
-        <span
-          v-if="displayValue"
-          class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
-          :style="{
-            backgroundColor: colorsForOption(displayValue).background,
-            borderColor: colorsForOption(displayValue).border,
-            color: colorsForOption(displayValue).text
-          }">
-          <span class="block h-2 w-2 rounded-full" :style="{ backgroundColor: colorsForOption(displayValue).dot }" />
-          <span class="truncate">{{ displayValue }}</span>
-        </span>
-        <span v-else :class="inputClass">
+        <span v-if="displayValue" class="text-sm leading-6 truncate p-0 m-0">{{ displayValue }}</span>
+        <span v-else class="text-sm leading-6 p-0 m-0">
           {{ value }}
         </span>
       </template>
 
-    <template v-else>
-      <input
+      <template v-else>
+        <input
           ref="inputElement"
           type="text"
           :value="displayInputValue"
@@ -258,20 +241,18 @@
           <div
             v-if="options?.length && isDropdownOpen"
             ref="dropdownElement"
-            class="z-50 overflow-y-auto rounded-lg border border-grey-200 bg-white shadow-lg ring-1 ring-black/5"
+            class="z-50 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg ring-1 ring-black/5"
             :style="dropdownStyle">
             <button
               v-for="(entry, optionIndex) in dropdownEntries"
               :key="entry.label + optionIndex"
               type="button"
-              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-grey-800 transition hover:bg-grey-50"
+              class="flex w-full items-center px-3 py-2 text-left text-sm text-gray-800 transition hover:bg-gray-50"
               :data-option="true"
               :data-active="highlightedIndex === optionIndex"
-              :class="highlightedIndex === optionIndex ? 'bg-grey-50' : ''"
+              :class="highlightedIndex === optionIndex ? 'bg-gray-50' : ''"
               @mousedown.prevent="selectOption(entry.label)"
               @click.prevent="selectOption(entry.label)">
-              <span v-if="!entry.isNew" class="block h-2 w-2 rounded-full" :style="{ backgroundColor: colorsForOption(entry.label).dot }" />
-              <span v-else class="block h-2 w-2 rounded-full bg-grey-300" />
               <span class="truncate">{{ entry.label }}</span>
             </button>
           </div>

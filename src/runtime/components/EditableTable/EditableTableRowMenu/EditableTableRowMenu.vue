@@ -25,16 +25,16 @@
 
   const isVisible = defineModel<boolean>({ default: false });
 
-  const titleClass = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-grey-500");
+  const titleClass = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500");
   const actionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left", {
     variants: {
       destructive: {
         true: "text-error-100 hover:bg-error-50",
-        false: "hover:bg-grey-50"
+        false: "hover:bg-gray-50"
       },
       disabled: {
-        true: "cursor-not-allowed text-grey-400 hover:bg-transparent",
-        false: "text-grey-800"
+        true: "cursor-not-allowed text-gray-400 hover:bg-transparent",
+        false: "text-gray-800"
       }
     },
     compoundVariants: [
@@ -92,35 +92,35 @@
     <div class="w-56 space-y-1">
       <button type="button" :class="actionClass()" @click="onInsertAbove">
         <span class="flex items-center gap-2">
-          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-grey-500" />
+          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-500" />
           <span>Insert above</span>
         </span>
       </button>
 
       <button type="button" :class="actionClass()" @click="onInsertBelow">
         <span class="flex items-center gap-2">
-          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-grey-500" />
+          <FontAwesomeIcon :icon="faPlus" class="h-4 w-4 text-gray-500" />
           <span>Insert below</span>
         </span>
       </button>
 
-      <div class="my-1 border-t border-grey-200" />
+      <div class="my-1 border-t border-gray-200" />
 
       <button type="button" :class="actionClass({ disabled: !canMoveUp })" @click="onMoveUp">
         <span class="flex items-center gap-2">
-          <FontAwesomeIcon :icon="faArrowUp" class="h-4 w-4 text-grey-500" />
+          <FontAwesomeIcon :icon="faArrowUp" class="h-4 w-4 text-gray-500" />
           <span>Move up</span>
         </span>
       </button>
 
       <button type="button" :class="actionClass({ disabled: !canMoveDown })" @click="onMoveDown">
         <span class="flex items-center gap-2">
-          <FontAwesomeIcon :icon="faArrowDown" class="h-4 w-4 text-grey-500" />
+          <FontAwesomeIcon :icon="faArrowDown" class="h-4 w-4 text-gray-500" />
           <span>Move down</span>
         </span>
       </button>
 
-      <div class="my-1 border-t border-grey-200" />
+      <div class="my-1 border-t border-gray-200" />
 
       <button type="button" :class="actionClass({ destructive: true })" @click="onDeleteRow">
         <span class="flex items-center gap-2">

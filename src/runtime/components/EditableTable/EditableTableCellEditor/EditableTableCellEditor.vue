@@ -28,11 +28,11 @@
 
   const editorRoot = ref<HTMLElement | null>(null);
 
-  const contentClass = cva("block w-full h-full bg-transparent text-sm leading-6 outline-none border-none p-0", {
+  const contentClass = cva("w-full bg-transparent text-sm leading-6 outline-none border-none p-0 m-0", {
     variants: {
       editable: {
         true: "select-text",
-        false: "select-none text-grey-800"
+        false: "select-none text-gray-800"
       }
     },
     defaultVariants: {
@@ -76,7 +76,7 @@
 </script>
 
 <template>
-  <div ref="editorRoot" class="w-full h-full" @focusout="emit('blur', $event)">
+  <div ref="editorRoot" class="w-full h-full flex items-center" @focusout="emit('blur', $event)">
     <template v-if="type === 'select'">
       <EditableTableSelectCell
         v-model="value"
@@ -99,10 +99,20 @@
       <input type="checkbox" v-model="value" class="h-4 w-4" />
     </div>
 
-    <input v-else-if="type === 'number'" type="number" v-model="value" :class="contentClass({ editable: true })" />
+    <input
+      v-else-if="type === 'number'"
+      type="number"
+      v-model="value"
+      :class="[contentClass({ editable: true }), 'appearance-none']"
+      style="line-height: 1.5rem; font-variant-numeric: tabular-nums" />
 
-    <input v-else-if="type === 'date'" type="date" v-model="value" :class="contentClass({ editable: true })" />
+    <input
+      v-else-if="type === 'date'"
+      type="date"
+      v-model="value"
+      :class="[contentClass({ editable: true }), 'appearance-none']"
+      style="line-height: 1.5rem" />
 
-    <input v-else type="text" v-model="value" :class="contentClass({ editable: true })" />
+    <input v-else type="text" v-model="value" :class="[contentClass({ editable: true }), 'appearance-none']" style="line-height: 1.5rem" />
   </div>
 </template>

@@ -6,6 +6,7 @@
   import EditableTableCellEditor from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
   import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
   import { useEditableTableNavigation } from "#editable-table/composables/useEditableTableNavigation";
+  import { useSmartTooltip } from "#editable-table/composables/useSmartTooltip";
   import { type ColumnType } from "#editable-table/types/column";
 
   interface SelectionRange {
@@ -69,6 +70,7 @@
 
   const repeatTimeoutHandles = new Map<ArrowNavigationKey, number>();
   const cellElement = ref<HTMLElement | null>(null);
+  const tooltipElement = ref<HTMLElement | null>(null);
   const originalValue = ref<TRow[TKey] | null>(null);
   const hasOriginalValue = ref(false);
   const selectOnFocus = ref(true);
@@ -96,6 +98,16 @@
     );
   });
 
+  const isLastRow = computed(() => props.rowIndex === props.rowCount - 1);
+
+  const { position: tooltipPosition } = useSmartTooltip({
+    triggerElement: cellElement.value,
+    tooltipElement: tooltipElement.value,
+    tooltipWidth: 600,
+    gap: 8,
+    padding: 8
+  });
+
   const cellClass = cva("relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent", {
     variants: {
       active: {
@@ -104,11 +116,11 @@
       },
       focused: {
         true: "border-accent-200 shadow-[inset_0_0_0_2px_rgba(var(--color-accent-100),0.45)]",
-        false: "hover:bg-grey-50"
+        false: "hover:bg-gray-50"
       },
       selected: {
         true: "bg-accent-50/40 shadow-[inset_0_0_0_1px_rgba(var(--color-accent-100),0.25)]",
-        false: "hover:bg-grey-50"
+        false: "hover:bg-gray-50"
       },
       invalid: {
         true: "border-error-100 shadow-[inset_0_0_0_1px_rgba(205,0,47,0.35)]",
@@ -364,6 +376,18 @@
   }
 
   function onKeyDown(event: KeyboardEvent) {
+    // Handle Tab separately (includes Shift+Tab)
+    if (event.key === "Tab") {
+      if (!isFocused.value) return;
+      event.preventDefault();
+      if (isActive.value) {
+        stopEditing();
+      }
+      const direction = event.shiftKey ? "left" : "right";
+      move(direction, props.rowCount, props.columnCount);
+      return;
+    }
+
     if (!isFocused.value || isActive.value) return;
 
     if (event.key === "Backspace" || event.key === "Delete") {
@@ -426,14 +450,6 @@
     }
 
     stopEditing();
-  });
-
-  watch(keys.tab, (pressed) => {
-    if (!shouldHandleNavigationKey("Tab", pressed, isFocused.value, isActive.value, { allowWhileEditing: true })) return;
-    if (isActive.value) {
-      stopEditing();
-    }
-    move(keys.shift.value ? "left" : "right", props.rowCount, props.columnCount);
   });
 
   watch(keys.arrowLeft, (pressed) => {
@@ -500,23 +516,27 @@
     :class="[
       cellClass({ active: isActive, focused: isFocused, selected: isSelected, invalid: isInvalid }),
       !isActive ? 'select-none' : '',
-      'group'
+      'group relative'
     ]"
     @mousedown="onMouseDown"
     @keydown="onKeyDown"
     @dblclick="onDblClick">
-    <EditableTableCellEditor
-      v-model="value"
-      :type="columnType"
-      :select-options="selectOptions"
-      :allow-custom-options="columnAllowCustomOptions"
-      :select-on-focus="selectOnFocus"
-      @blur="onBlur"
-      class="w-full"
-      :is-editable="isActive" />
+    <div class="w-full h-full whitespace-nowrap overflow-hidden">
+      <EditableTableCellEditor
+        v-model="value"
+        :type="columnType"
+        :select-options="selectOptions"
+        :allow-custom-options="columnAllowCustomOptions"
+        :select-on-focus="selectOnFocus"
+        @blur="onBlur"
+        class="w-full"
+        :is-editable="isActive" />
+    </div>
     <div
       v-if="validationMessage"
-      class="pointer-events-none absolute left-2 top-full z-20 mt-1 hidden max-w-55 rounded-md border border-error-50 bg-white px-2 py-1 text-xs text-error-100 shadow-sm group-hover:block">
+      ref="tooltipElement"
+      class="rounded-md border border-error-50 bg-white px-2 py-1 text-xs text-error-100 shadow-sm break-words whitespace-normal pointer-events-none absolute z-20 hidden group-hover:block"
+      :style="tooltipPosition.style">
       {{ validationMessage }}
     </div>
   </div>

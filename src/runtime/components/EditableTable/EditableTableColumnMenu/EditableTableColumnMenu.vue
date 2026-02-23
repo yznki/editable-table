@@ -59,8 +59,8 @@
   const optionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 transition-colors text-left", {
     variants: {
       active: {
-        true: "bg-grey-100 text-grey-900",
-        false: "hover:bg-grey-50"
+        true: "bg-gray-100 text-gray-900",
+        false: "hover:bg-gray-50"
       }
     },
     defaultVariants: {
@@ -68,13 +68,13 @@
     }
   });
 
-  const titleClass = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-grey-500");
+  const titleClass = cva("px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500");
 
   const actionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left", {
     variants: {
       disabled: {
-        true: "text-grey-400 cursor-not-allowed",
-        false: "hover:bg-grey-50 text-grey-800"
+        true: "text-gray-400 cursor-not-allowed",
+        false: "hover:bg-gray-50 text-gray-800"
       }
     },
     defaultVariants: {
@@ -85,8 +85,8 @@
   const typeOptionClass = cva("flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left", {
     variants: {
       active: {
-        true: "bg-grey-100 text-grey-900",
-        false: "hover:bg-grey-50 text-grey-800"
+        true: "bg-gray-100 text-gray-900",
+        false: "hover:bg-gray-50 text-gray-800"
       }
     },
     defaultVariants: {
@@ -207,7 +207,7 @@
           @mouseenter="openTypeSubmenu"
           @mouseleave="scheduleCloseTypeSubmenu">
           <div class="flex items-center gap-2">
-            <FontAwesomeIcon v-if="currentTypeOption.icon" :icon="currentTypeOption.icon" class="h-4 w-4 text-grey-600" />
+            <FontAwesomeIcon v-if="currentTypeOption.icon" :icon="currentTypeOption.icon" class="h-4 w-4 text-gray-600" />
             <span class="font-medium">Type</span>
           </div>
         </button>
@@ -229,41 +229,41 @@
                 <FontAwesomeIcon v-if="option.icon" :icon="option.icon" class="h-4 w-4" />
                 <span>{{ option.label }}</span>
               </div>
-              <span v-if="option.value === currentTypeOption.value" class="text-xs text-grey-500">Current</span>
+              <span v-if="option.value === currentTypeOption.value" class="text-xs text-gray-500">Current</span>
             </button>
           </div>
         </ContextMenu>
       </template>
 
-      <div class="mt-1 space-y-1 border-t border-grey-100 pt-2">
+      <div class="mt-1 space-y-1 border-t border-gray-100 pt-2">
         <button type="button" :class="actionClass()" @click="sort('asc')">
           <span class="flex items-center gap-2">
-            <FontAwesomeIcon :icon="faArrowUpShortWide" class="h-4 w-4 text-grey-500" />
+            <FontAwesomeIcon :icon="faArrowUpShortWide" class="h-4 w-4 text-gray-500" />
             <span>Sort ascending</span>
           </span>
         </button>
         <button type="button" :class="actionClass()" @click="sort('desc')">
           <span class="flex items-center gap-2">
-            <FontAwesomeIcon :icon="faArrowDownWideShort" class="h-4 w-4 text-grey-500" />
+            <FontAwesomeIcon :icon="faArrowDownWideShort" class="h-4 w-4 text-gray-500" />
             <span>Sort descending</span>
           </span>
         </button>
         <button type="button" :class="actionClass()" @click="onHideColumn">
           <span class="flex items-center gap-2">
-            <FontAwesomeIcon :icon="faEyeSlash" class="h-4 w-4 text-grey-500" />
+            <FontAwesomeIcon :icon="faEyeSlash" class="h-4 w-4 text-gray-500" />
             <span>Hide column</span>
           </span>
         </button>
-        <div class="border-t border-grey-100 pt-2 space-y-1">
+        <div class="border-t border-gray-100 pt-2 space-y-1">
           <button type="button" :class="actionClass({ disabled: !canMoveLeft })" :disabled="!canMoveLeft" @click="onMoveLeft">
             <span class="flex items-center gap-2">
-              <FontAwesomeIcon :icon="moveLeftIcon" class="h-4 w-4 text-grey-500" />
+              <FontAwesomeIcon :icon="moveLeftIcon" class="h-4 w-4 text-gray-500" />
               <span>Move {{ !isShiftHeld ? "left" : "to start" }}</span>
             </span>
           </button>
           <button type="button" :class="actionClass({ disabled: !canMoveRight })" :disabled="!canMoveRight" @click="onMoveRight">
             <span class="flex items-center gap-2">
-              <FontAwesomeIcon :icon="moveRightIcon" class="h-4 w-4 text-grey-500" />
+              <FontAwesomeIcon :icon="moveRightIcon" class="h-4 w-4 text-gray-500" />
               <span>Move {{ !isShiftHeld ? "right" : "to end" }}</span>
             </span>
           </button>

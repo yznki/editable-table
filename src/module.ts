@@ -1,4 +1,4 @@
-import { defineNuxtModule, createResolver, addImportsDir, addComponentsDir } from "@nuxt/kit";
+import { defineNuxtModule, createResolver, addImportsDir, addComponentsDir, installModule } from "@nuxt/kit";
 
 export interface ModuleOptions {
   /**
@@ -15,6 +15,8 @@ export default defineNuxtModule<ModuleOptions>({
   },
 
   defaults: {},
+
+  moduleDependencies: {},
 
   async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
@@ -60,16 +62,11 @@ export default defineNuxtModule<ModuleOptions>({
     const shouldInstallTailwind = !options.disableTailwind && !hasCvcModule;
 
     if (shouldInstallTailwind) {
-      nuxt.options.modules ||= [];
-
-      nuxt.options.modules.push([
-        "@nuxtjs/tailwindcss",
-        {
-          configPath: resolver.resolve("../tailwind.config"),
-          cssPath: [resolver.resolve("../assets/tailwind/tailwind.css"), { injectPosition: "first" }],
-          exposeConfig: true
-        }
-      ]);
+      await installModule("@nuxtjs/tailwindcss", {
+        configPath: resolver.resolve("../tailwind.config"),
+        cssPath: [resolver.resolve("../assets/tailwind/tailwind.css"), { injectPosition: "first" }],
+        exposeConfig: true
+      });
     }
   }
 });
