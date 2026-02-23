@@ -82,19 +82,27 @@
 </script>
 
 <template>
-  <div :class="footerRow()">
-    <div :class="[footerContent(), hasStats ? '' : 'invisible pointer-events-none']" :aria-hidden="!hasStats">
-      <label class="flex items-center gap-1 text-gray-500">
-        <select v-model="selectedStat" :class="footerSelect()" :disabled="!hasStats">
-          <option v-for="option in statOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </label>
-      <span v-for="statistic in numericStats" :key="statistic.key" :class="footerStat()">
-        {{ statistic.title }}:
-        <strong class="font-semibold text-gray-900">{{ statistic.value }}</strong>
-      </span>
+  <Transition
+    enter-active-class="transition duration-200 ease-out"
+    enter-from-class="opacity-0 translate-y-2"
+    enter-to-class="opacity-100 translate-y-0"
+    leave-active-class="transition duration-150 ease-in"
+    leave-from-class="opacity-100 translate-y-0"
+    leave-to-class="opacity-0 translate-y-2">
+    <div v-if="hasStats" :class="footerRow()">
+      <div :class="footerContent()">
+        <label class="flex items-center gap-1 text-gray-500">
+          <select v-model="selectedStat" :class="footerSelect()">
+            <option v-for="option in statOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <span v-for="statistic in numericStats" :key="statistic.key" :class="footerStat()">
+          {{ statistic.title }}:
+          <strong class="font-semibold text-gray-900">{{ statistic.value }}</strong>
+        </span>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>

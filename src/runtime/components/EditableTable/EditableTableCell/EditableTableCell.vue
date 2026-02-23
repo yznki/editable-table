@@ -21,6 +21,7 @@
     rowId: string | number;
     columnKey: TKey;
     columnType?: ColumnType;
+    columnEditable?: boolean;
     selectOptions?: string[];
     columnRequired?: boolean;
     columnValidation?:
@@ -72,18 +73,20 @@
   const tooltipElement = ref<HTMLElement | null>(null);
   const tableRootElement = ref<HTMLElement | null>(null);
   const isHovered = ref(false);
-  const suppressFocusTooltip = ref(false);
   const originalValue = ref<TRow[TKey] | null>(null);
   const hasOriginalValue = ref(false);
   const selectOnFocus = ref(true);
   const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-  const isActive = computed(() =>
-    isEditing({
+  const isEditable = computed(() => props.columnEditable !== false);
+
+  const isActive = computed(() => {
+    if (!isEditable.value) return false;
+    return isEditing({
       rowId: props.rowId,
       columnKey: String(props.columnKey)
-    })
-  );
+    });
+  });
 
   const isFocused = computed(
     () => activePosition.value?.rowIndex === props.rowIndex && activePosition.value?.columnIndex === props.columnIndex
@@ -167,9 +170,7 @@
   });
 
   const tooltipId = computed(() => `editable-table-tooltip-${String(props.rowId)}-${String(props.columnKey)}`);
-  const isTooltipVisible = computed(
-    () => Boolean(validationMessage.value) && (isHovered.value || (isFocused.value && !suppressFocusTooltip.value))
-  );
+  const isTooltipVisible = computed(() => Boolean(validationMessage.value) && isHovered.value);
 
   const { position: tooltipPosition } = useSmartTooltip({
     triggerElement: cellElement,
@@ -184,10 +185,16 @@
   });
 
   const cellClass = computed(() => [
-    "relative cursor-text outline-none transition-colors px-3 py-2 bg-white border border-transparent",
+    "relative h-11 outline-none transition-colors px-3 py-2 bg-white border border-transparent",
+    isEditable.value ? "cursor-text" : "cursor-not-allowed bg-slate-100 text-slate-500 border-slate-200",
     isActive.value ? "bg-accent-50/70" : "",
-    isFocused.value ? "border-accent-200 shadow-[inset_0_0_0_2px_rgba(var(--color-accent-100),0.45)]" : "hover:bg-gray-50",
-    isSelected.value ? "bg-accent-50/40 shadow-[inset_0_0_0_1px_rgba(var(--color-accent-100),0.25)]" : "hover:bg-gray-50",
+    isEditable.value && isFocused.value ? "border-accent-200 shadow-[inset_0_0_0_2px_rgba(var(--color-accent-100),0.45)]"
+    : isEditable.value ? "hover:bg-gray-50"
+    : "",
+    isEditable.value && isSelected.value ?
+      "bg-accent-50/40 shadow-[inset_0_0_0_1px_rgba(var(--color-accent-100),0.25)]"
+    : isEditable.value ? "hover:bg-gray-50"
+    : "",
     isInvalid.value ? "border-error-100 shadow-[inset_0_0_0_1px_rgba(205,0,47,0.35)]" : ""
   ]);
 
@@ -237,6 +244,7 @@
   }
 
   function onDblClick() {
+    if (!isEditable.value) return;
     selectOnFocus.value = true;
     startEditing({
       rowId: props.rowId,
@@ -340,6 +348,7 @@
   }
 
   function beginEditWithValue(nextValue: TRow[TKey]) {
+    if (!isEditable.value) return;
     selectOnFocus.value = false;
     originalValue.value = value.value ?? null;
     hasOriginalValue.value = true;
@@ -351,6 +360,7 @@
   }
 
   function beginEditWithoutValue() {
+    if (!isEditable.value) return;
     selectOnFocus.value = true;
     startEditing({
       rowId: props.rowId,
@@ -372,13 +382,6 @@
   }
 
   function onKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape" && isTooltipVisible.value && !isActive.value) {
-      event.preventDefault();
-      suppressFocusTooltip.value = true;
-      isHovered.value = false;
-      return;
-    }
-
     // Handle Tab separately (includes Shift+Tab)
     if (event.key === "Tab") {
       if (!isFocused.value) return;
@@ -392,6 +395,7 @@
     }
 
     if (!isFocused.value || isActive.value) return;
+    if (!isEditable.value) return;
 
     if (event.key === "Backspace" || event.key === "Delete") {
       event.preventDefault();
@@ -426,6 +430,7 @@
     if (!pressed || !isFocused.value) return;
 
     if (!isActive.value) {
+      if (!isEditable.value) return;
       startEditing({
         rowId: props.rowId,
         columnKey: String(props.columnKey)
@@ -438,12 +443,15 @@
   });
 
   watch(isFocused, (focused) => {
-    if (!focused) {
-      suppressFocusTooltip.value = false;
-    }
-
     if (focused) {
       emit("cell-focus", { rowIndex: props.rowIndex, columnIndex: props.columnIndex });
+    }
+  });
+
+  watch(isEditable, (editable) => {
+    if (editable) return;
+    if (isEditing({ rowId: props.rowId, columnKey: String(props.columnKey) })) {
+      stopEditing();
     }
   });
 
@@ -526,6 +534,7 @@
     ref="cellElement"
     :class="[cellClass, !isActive ? 'select-none' : '', 'relative']"
     :aria-invalid="isInvalid ? 'true' : 'false'"
+    :aria-disabled="!isEditable ? 'true' : undefined"
     :aria-describedby="isTooltipVisible ? tooltipId : undefined"
     @mousedown="onMouseDown"
     @keydown="onKeyDown"
@@ -541,7 +550,7 @@
         :select-on-focus="selectOnFocus"
         @blur="onBlur"
         class="w-full"
-        :is-editable="isActive" />
+        :is-editable="isActive && isEditable" />
     </div>
     <teleport to="body">
       <div

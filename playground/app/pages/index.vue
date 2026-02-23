@@ -1,345 +1,290 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-8">
-    <div class="max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">Editable Table Test Page</h1>
-        <p class="text-gray-600">Comprehensive test of all editable table features and column types</p>
+  <main class="min-h-screen bg-slate-100 text-slate-900">
+    <section class="mx-auto max-w-[1600px] px-6 py-10 md:px-10">
+      <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <p class="text-sm uppercase tracking-[0.24em] text-[#0A8276]">Requirements Manager</p>
+        <h1 class="mt-4 text-3xl font-black text-slate-900 md:text-5xl">Projects Dashboard</h1>
+        <p class="mt-3 max-w-3xl text-sm text-slate-600 md:text-base">
+          Create and manage requirements projects. Each project contains reorderable requirement sets and spreadsheet editing.
+        </p>
       </div>
 
-      <!-- Feature List -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Column Types Tested</h2>
-          <ul class="space-y-2 text-sm text-gray-700">
-            <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Text (editable)</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Number</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Boolean (toggle)</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Select (with custom options)</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Date picker</li>
-          </ul>
+      <section class="mt-8 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold">All Projects</h2>
+          <p class="text-sm text-slate-600">{{ storage.projects.length }} total</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Features Tested</h2>
-          <ul class="space-y-2 text-sm text-gray-700">
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Cell editing & validation</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Clipboard (copy/paste)</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Column & row dragging</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Keyboard navigation</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Context menus</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>History (undo/redo)</li>
-            <li class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Column preferences</li>
-          </ul>
+        <div class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <article
+            v-for="project in storage.projects"
+            :key="project.id"
+            role="button"
+            tabindex="0"
+            @click="openProject(project.id)"
+            @keydown.enter.prevent="openProject(project.id)"
+            @keydown.space.prevent="openProject(project.id)"
+            class="flex min-h-[210px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#0A8276]/25 md:min-h-[220px]">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="text-lg font-semibold">{{ project.name }}</h3>
+                <p class="mt-1 text-sm text-slate-600">{{ project.description || "No description" }}</p>
+              </div>
+              <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                {{ project.sheets.length }} sets
+              </span>
+            </div>
+
+            <div class="mt-4 text-xs text-slate-500">
+              Updated {{ formatDateTime(project.updatedAt) }}
+            </div>
+
+            <div class="mt-auto pt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                @click.stop="openProject(project.id)"
+                class="rounded-lg bg-[#0A8276] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#086d63]">
+                Open
+              </button>
+              <button
+                type="button"
+                @click.stop="openEditModal(project.id)"
+                class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
+                Edit
+              </button>
+              <button
+                type="button"
+                @click.stop="requestDeleteProject(project.id)"
+                class="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50">
+                Delete
+              </button>
+            </div>
+          </article>
+
+          <button
+            type="button"
+            @click="openCreateModal"
+            :class="createCardClass"
+            class="group relative flex min-h-[210px] w-full flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-8 text-center backdrop-blur-sm transition md:min-h-[220px]">
+            <span class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-current text-3xl leading-none">+</span>
+            <h3 class="text-lg font-semibold">New Project</h3>
+            <p class="mt-2 text-sm opacity-80">Create a project with name and description in a modal.</p>
+          </button>
+        </div>
+      </section>
+    </section>
+
+    <Transition
+      enter-active-class="transition-opacity duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="isProjectModalOpen" class="fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-sm" />
+    </Transition>
+
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2 scale-[0.98]"
+      enter-to-class="opacity-100 translate-y-0 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0 scale-100"
+      leave-to-class="opacity-0 translate-y-2 scale-[0.98]">
+      <div v-if="isProjectModalOpen" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div ref="projectModalPanelEl" class="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-xl font-bold">{{ isEditMode ? "Edit Project" : "Create Project" }}</h3>
+              <p class="mt-1 text-sm text-slate-600">
+                {{ isEditMode ? "Update project metadata." : "Define the project metadata. Requirement sets start with one default sheet." }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="closeProjectModal"
+              aria-label="Close modal"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-700 transition hover:border-[#0A8276]/40 hover:bg-[#0A8276]/5">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+
+          <form class="mt-5 space-y-3" @submit.prevent="submitProjectModal">
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Name</span>
+              <input
+                v-model="projectForm.name"
+                required
+                type="text"
+                placeholder="Powertrain Controller"
+                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-[#0A8276] focus:ring-2 focus:ring-[#0A8276]/15" />
+            </label>
+
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Description</span>
+              <textarea
+                v-model="projectForm.description"
+                rows="4"
+                placeholder="Scope, stakeholders, and engineering context"
+                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-[#0A8276] focus:ring-2 focus:ring-[#0A8276]/15" />
+            </label>
+
+            <button
+              type="submit"
+              class="w-full rounded-xl bg-[#0A8276] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#086d63]">
+              {{ isEditMode ? "Save Changes" : "Create Project" }}
+            </button>
+          </form>
         </div>
       </div>
+    </Transition>
 
-      <!-- Quick Actions -->
-      <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div class="flex flex-wrap gap-3">
-          <button
-            @click="addRow"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-            + Add Row
-          </button>
-          <button
-            @click="clearData"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
-            Clear Data
-          </button>
-          <button
-            @click="toggleValidation"
-            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium">
-            {{ showValidation ? "Hide" : "Show" }} Validation Errors
-          </button>
-          <button
-            @click="logTableState"
-            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
-            Log Table State
-          </button>
-        </div>
-      </div>
+    <Transition
+      enter-active-class="transition-opacity duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="projectDeleteDialog" class="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm" @click="closeProjectDeleteDialog" />
+    </Transition>
 
-      <!-- Table Section -->
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-6 border-b border-gray-200">
-          <h2 class="text-xl font-semibold text-gray-900">Test Table</h2>
-          <p class="text-sm text-gray-600 mt-2">
-            Try: <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">Tab</span> to navigate,
-            <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">Ctrl+Z</span> to undo,
-            <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">Drag</span> to reorder columns/rows,
-            <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">Right-click</span> for context menus
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2 scale-[0.98]"
+      enter-to-class="opacity-100 translate-y-0 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0 scale-100"
+      leave-to-class="opacity-0 translate-y-2 scale-[0.98]">
+      <div v-if="projectDeleteDialog" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <h3 class="text-lg font-bold text-slate-900">Delete Project</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            Are you sure you want to delete
+            <span class="font-semibold text-slate-800">"{{ projectDeleteDialog.name }}"</span>?
+            This removes all requirement sets in it.
           </p>
-        </div>
 
-        <div class="p-6 overflow-x-auto">
-          <EditableTable
-            v-model="tableData"
-            v-model:columns="tableColumns"
-            v-model:isValid="isTableValid"
-            :allow-column-type-changes="true"
-            storage-key="editable-table-test" />
-        </div>
-
-        <!-- Validation Status -->
-        <div v-if="showValidation" class="p-6 bg-gray-50 border-t border-gray-200">
-          <h3 class="font-semibold text-gray-900 mb-3">Table Status</h3>
-          <div class="space-y-2 text-sm">
-            <p class="flex items-center">
-              <span :class="isTableValid ? 'text-green-600' : 'text-red-600'" class="mr-2 font-bold">
-                {{ isTableValid ? "✓" : "✗" }}
-              </span>
-              <span :class="isTableValid ? 'text-green-600' : 'text-red-600'">
-                {{ isTableValid ? "All rows are valid" : "Some rows have validation errors" }}
-              </span>
-            </p>
-            <p class="text-gray-700">
-              Total rows: <span class="font-semibold">{{ tableData.length }}</span>
-            </p>
-            <p class="text-gray-700">
-              Total columns: <span class="font-semibold">{{ tableColumns.length }}</span>
-            </p>
+          <div class="mt-5 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              @click="closeProjectDeleteDialog"
+              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+              No
+            </button>
+            <button
+              type="button"
+              @click="confirmDeleteProject"
+              class="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-rose-500">
+              Yes, delete
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- Data Preview -->
-      <div class="mt-8 bg-white rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Preview (JSON)</h2>
-        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-xs leading-relaxed">
-          <pre>{{ JSON.stringify(tableData, null, 2) }}</pre>
-        </div>
-      </div>
-
-      <!-- Instructions -->
-      <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 class="text-lg font-semibold text-blue-900 mb-3">How to Test All Features</h3>
-        <div class="space-y-2 text-sm text-blue-800">
-          <p>
-            <strong>Cell Editing:</strong> Click any cell to edit. For text and number fields, type to edit. For numbers, only digits are
-            allowed.
-          </p>
-          <p><strong>Boolean Cells:</strong> Click to toggle between true/false.</p>
-          <p><strong>Select Cells:</strong> Click to open dropdown with preset and custom options. Type to add new options.</p>
-          <p><strong>Date Cells:</strong> Click to open date picker.</p>
-          <p><strong>Validation:</strong> Try entering invalid data (non-numbers in number fields, etc.) to see validation in action.</p>
-          <p><strong>Column Dragging:</strong> Drag column headers to reorder columns.</p>
-          <p><strong>Row Dragging:</strong> Drag row numbers to reorder rows.</p>
-          <p><strong>Selection:</strong> Click cells and drag to select multiple cells. Use Shift+Click for range selection.</p>
-          <p><strong>Clipboard:</strong> Use Ctrl+C to copy selected cells, Ctrl+V to paste. Use Ctrl+X to cut.</p>
-          <p><strong>History:</strong> Use Ctrl+Z to undo and Ctrl+Shift+Z to redo changes.</p>
-          <p><strong>Context Menus:</strong> Right-click on column headers or row numbers to see context menu options.</p>
-          <p><strong>Required Fields:</strong> Fields marked as required cannot be left empty.</p>
-          <p><strong>Column Preferences:</strong> Column visibility and order preferences are saved in localStorage.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+    </Transition>
+  </main>
 </template>
 
 <script setup lang="ts">
-  import { ref } from "vue";
-  import type { EditableTableColumn } from "#editable-table/types/column";
+  import { computed, reactive, ref } from "vue";
+  import { onClickOutside } from "@vueuse/core";
+  import { createProject, useRequirementsManagerStorage } from "~/composables/useRequirementsManager";
 
-  interface TestTableRow {
-    id: string;
-    name: string;
-    email: string;
-    age: number;
-    isActive: boolean;
-    department: string;
-    startDate: string;
-    notes: string;
-  }
+  const storage = useRequirementsManagerStorage();
 
-  const tableData = ref<TestTableRow[]>([
-    {
-      id: "1",
-      name: "Alice Johnson",
-      email: "alice.johnson@example.com",
-      age: 28,
-      isActive: true,
-      department: "Engineering",
-      startDate: "2022-01-15",
-      notes: "Senior Developer"
-    },
-    {
-      id: "2",
-      name: "Bob Smith",
-      email: "bob.smith@example.com",
-      age: 35,
-      isActive: true,
-      department: "Product",
-      startDate: "2021-06-20",
-      notes: "Product Manager"
-    },
-    {
-      id: "3",
-      name: "Carol White",
-      email: "carol.white@example.com",
-      age: 32,
-      isActive: false,
-      department: "Design",
-      startDate: "2023-03-10",
-      notes: "UX Designer"
-    },
-    {
-      id: "4",
-      name: "David Brown",
-      email: "david.brown@example.com",
-      age: 29,
-      isActive: true,
-      department: "Engineering",
-      startDate: "2022-11-01",
-      notes: "Full Stack Developer"
-    },
-    {
-      id: "5",
-      name: "Eve Davis",
-      email: "eve.davis@example.com",
-      age: 31,
-      isActive: true,
-      department: "Marketing",
-      startDate: "2021-09-15",
-      notes: "Marketing Lead"
+  const isProjectModalOpen = ref(false);
+  const projectForm = reactive({
+    name: "",
+    description: ""
+  });
+  const projectModalPanelEl = ref<HTMLElement | null>(null);
+  const editProjectId = ref<string | null>(null);
+  const projectDeleteDialog = ref<{ id: string; name: string } | null>(null);
+  const isEditMode = computed(() => editProjectId.value !== null);
+
+  const createCardClass = computed(() => {
+    if (!storage.value.projects.length) {
+      return "md:col-span-2 xl:col-span-4 border-[#0A8276]/35 bg-[#0A8276]/8 text-[#0A8276] hover:bg-[#0A8276]/12";
     }
-  ]);
 
-  const tableColumns = ref<EditableTableColumn<TestTableRow>[]>([
-    {
-      rowKey: "id",
-      title: "ID",
-      type: "text",
-      editable: false,
-      width: 80
-    },
-    {
-      rowKey: "name",
-      title: "Name",
-      type: "text",
-      editable: true,
-      required: true,
-      validate: [
-        (value) => {
-          const str = String(value || "").trim();
-          if (str.length < 2) return "Name must be at least 2 characters";
-          if (str.length > 100) return "Name must not exceed 100 characters";
-          return null;
-        },
-        () => "Test validation tooltip for Name column"
-      ]
-    },
-    {
-      rowKey: "email",
-      title: "Email",
-      type: "text",
-      editable: true,
-      required: true,
-      validate: [
-        (value) => {
-          const email = String(value || "").trim();
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(email)) return "Invalid email format";
-          return null;
-        },
-        () => "Email format should follow user@domain.com pattern"
-      ]
-    },
-    {
-      rowKey: "age",
-      title: "Age",
-      type: "number",
-      editable: true,
-      required: true,
-      validate: [
-        (value) => {
-          const num = Number(value);
-          if (isNaN(num)) return "Must be a number";
-          if (num < 18) return "Age must be at least 18";
-          if (num > 100) return "Age must not exceed 100";
-          return null;
-        },
-        () => "This is a test validation message for the Age column with a longer description"
-      ]
-    },
-    {
-      rowKey: "isActive",
-      title: "Active",
-      type: "boolean",
-      editable: true,
-      validate: () => "Boolean field validation tooltip test message"
-    },
-    {
-      rowKey: "department",
-      title: "Department",
-      type: "select",
-      editable: true,
-      required: true,
-      options: ["Engineering", "Product", "Design", "Marketing", "Sales", "HR"],
-      allowCustomOptions: true,
-      validate: () => "Department must be selected from the list"
-    },
-    {
-      rowKey: "startDate",
-      title: "Start Date",
-      type: "date",
-      editable: true,
-      required: true,
-      validate: [
-        (value) => {
-          const date = new Date(String(value || ""));
-          if (isNaN(date.getTime())) return "Invalid date format";
-          return null;
-        },
-        () => "Ensure the date is in YYYY-MM-DD format for consistency"
-      ]
-    },
-    {
-      rowKey: "notes",
-      title: "Notes",
-      type: "text",
-      editable: true,
-      validate: () => "Notes field validation tooltip example with extended message length"
-    }
-  ]);
+    return "border-slate-300 bg-white/50 text-slate-700 hover:border-[#0A8276]/40 hover:bg-[#0A8276]/8 hover:text-[#0A8276]";
+  });
 
-  const isTableValid = ref(true);
-  const showValidation = ref(false);
+  const formatDateTime = (value: string) => new Date(value).toLocaleString();
 
-  const addRow = () => {
-    const newId = String(Math.max(...tableData.value.map((r) => parseInt(r.id) || 0), 0) + 1);
-    tableData.value.push({
-      id: newId,
-      name: "",
-      email: "",
-      age: 0,
-      isActive: false,
-      department: "",
-      startDate: new Date().toISOString().split("T")[0] || "",
-      notes: ""
-    });
+  const openProject = (projectId: string) => {
+    navigateTo(`/projects/${projectId}`);
   };
 
-  const clearData = () => {
-    if (confirm("Are you sure you want to clear all data?")) {
-      tableData.value = [];
+  const openCreateModal = () => {
+    editProjectId.value = null;
+    projectForm.name = "";
+    projectForm.description = "";
+    isProjectModalOpen.value = true;
+  };
+
+  const openEditModal = (projectId: string) => {
+    const project = storage.value.projects.find((item) => item.id === projectId);
+    if (!project) return;
+
+    editProjectId.value = project.id;
+    projectForm.name = project.name;
+    projectForm.description = project.description;
+    isProjectModalOpen.value = true;
+  };
+
+  const closeProjectModal = () => {
+    isProjectModalOpen.value = false;
+    editProjectId.value = null;
+    projectForm.name = "";
+    projectForm.description = "";
+  };
+
+  onClickOutside(projectModalPanelEl, () => {
+    if (!isProjectModalOpen.value) return;
+    closeProjectModal();
+  });
+
+  const submitProjectModal = () => {
+    const name = projectForm.name.trim();
+
+    if (!name) return;
+
+    if (editProjectId.value) {
+      const project = storage.value.projects.find((item) => item.id === editProjectId.value);
+      if (!project) return;
+      project.name = name;
+      project.description = projectForm.description.trim();
+      project.updatedAt = new Date().toISOString();
+      closeProjectModal();
+      return;
     }
+
+    const project = createProject(name, projectForm.description.trim());
+    storage.value.projects.unshift(project);
+    closeProjectModal();
   };
 
-  const toggleValidation = () => {
-    showValidation.value = !showValidation.value;
+  const requestDeleteProject = (projectId: string) => {
+    const project = storage.value.projects.find((item) => item.id === projectId);
+    if (!project) return;
+    projectDeleteDialog.value = { id: project.id, name: project.name };
   };
 
-  const logTableState = () => {
-    console.table({
-      "Total Rows": tableData.value.length,
-      "Total Columns": tableColumns.value.length,
-      "Is Valid": isTableValid.value,
-      "Visible Columns": tableColumns.value.filter((c) => !c.hidden).length,
-      "Hidden Columns": tableColumns.value.filter((c) => c.hidden).length
-    });
-    console.log("Table Data:", tableData.value);
-    console.log("Table Columns:", tableColumns.value);
+  const closeProjectDeleteDialog = () => {
+    projectDeleteDialog.value = null;
+  };
+
+  const confirmDeleteProject = () => {
+    if (!projectDeleteDialog.value) return;
+    const projectId = projectDeleteDialog.value.id;
+
+    storage.value.projects = storage.value.projects.filter((item) => item.id !== projectId);
+    if (editProjectId.value === projectId) {
+      closeProjectModal();
+    }
+    closeProjectDeleteDialog();
   };
 </script>

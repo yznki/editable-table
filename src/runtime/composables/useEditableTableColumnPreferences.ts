@@ -146,7 +146,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     const hiddenSet = new Set(preferences.hiddenColumns ?? []);
     const typeMap = preferences.columnTypes ?? {};
 
-    options.columns.value = orderedColumns.map((column) => {
+    let nextColumns = orderedColumns.map((column) => {
       const key = getColumnKey(column);
       const nextType = typeMap[key] ?? column.type;
       return {
@@ -155,6 +155,13 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
         hidden: hiddenSet.has(key)
       };
     });
+
+    // Guard against persisted states that hide every column, which collapses the table to index width only.
+    if (nextColumns.length && nextColumns.every((column) => column.hidden)) {
+      nextColumns = nextColumns.map((column, index) => (index === 0 ? { ...column, hidden: false } : column));
+    }
+
+    options.columns.value = nextColumns;
 
     storedSort.value = preferences.sort ?? null;
     hasAppliedStoredSort.value = false;
@@ -194,6 +201,8 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     if (columnIndex === null) return;
     const target = options.columns.value[columnIndex];
     if (!target) return;
+    const visibleCount = options.columns.value.filter((column) => !column.hidden).length;
+    if (visibleCount <= 1 && !target.hidden) return;
     options.columns.value = options.columns.value.map((column, index) => (index === columnIndex ? { ...column, hidden: true } : column));
   }
 

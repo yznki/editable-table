@@ -273,6 +273,14 @@
     return null;
   }
 
+  function isCellEditable(column: EditableTableColumn<TRow>, row: TRow) {
+    if (typeof column.editable === "function") {
+      return column.editable(row);
+    }
+
+    return column.editable !== false;
+  }
+
   function getCellKey(rowId: string | number, columnKey: string | number) {
     return `${rowId}::${String(columnKey)}`;
   }
@@ -1018,7 +1026,7 @@
   const tableRoot = cva("relative w-full h-full text-sm flex flex-col");
   const headerRow = cva("relative grid border-b border-gray-300 bg-gray-50 font-medium");
   const headerCell = cva("relative px-3 py-2 truncate cursor-pointer transition-colors hover:bg-white");
-  const indexCell = cva("px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
+  const indexCell = cva("h-11 px-2 py-2 text-right text-xs text-gray-500 select-none bg-gray-50");
   const bodyRow = cva("grid border-b border-gray-200");
   const draggingRowClass = "bg-accent-50/40 opacity-70";
   const hiddenIndicatorCell = cva(
@@ -1136,6 +1144,7 @@
             :row-data="row"
             :column-key="entry.column.rowKey"
             :column-type="entry.column.type"
+            :column-editable="isCellEditable(entry.column, row)"
             :column-required="entry.column.required"
             :column-validation="entry.column.validate"
             :column-allow-custom-options="entry.column.allowCustomOptions"
