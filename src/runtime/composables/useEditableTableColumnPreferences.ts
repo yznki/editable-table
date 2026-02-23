@@ -1,4 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
+import { useLocalStorage } from "@vueuse/core";
 import type { ColumnType, EditableTableColumn } from "#editable-table/types/column";
 
 export type ColumnRenderEntry<TRow extends Record<string, any>> =
@@ -12,6 +13,17 @@ type StoredTablePreferences = {
   columnTypes?: Record<string, ColumnType>;
   sort?: { columnKey: string; direction: "asc" | "desc" };
 };
+
+const preferencesStoreByKey = new Map<string, { value: StoredTablePreferences | null }>();
+
+function getPreferencesStore(key: string) {
+  const existing = preferencesStoreByKey.get(key);
+  if (existing) return existing;
+
+  const created = useLocalStorage<StoredTablePreferences | null>(key, null);
+  preferencesStoreByKey.set(key, created);
+  return created;
+}
 
 interface ColumnPreferencesOptions<TRow extends Record<string, any>> {
   columns: Ref<EditableTableColumn<TRow>[]>;
@@ -98,14 +110,12 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
   }
 
   function loadStoredPreferences(): StoredTablePreferences | null {
-    if (typeof window === "undefined") return null;
+    if (!import.meta.client) return null;
     const key = resolveStorageKey();
     if (!key) return null;
 
     try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as StoredTablePreferences;
+      const parsed = getPreferencesStore(key).value;
       if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.columnOrder)) return null;
       return parsed;
     } catch {
@@ -114,12 +124,12 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
   }
 
   function saveStoredPreferences(preferences: StoredTablePreferences) {
-    if (typeof window === "undefined") return;
+    if (!import.meta.client) return;
     const key = resolveStorageKey();
     if (!key) return;
 
     try {
-      window.localStorage.setItem(key, JSON.stringify(preferences));
+      getPreferencesStore(key).value = preferences;
     } catch {
       // Ignore storage errors to avoid blocking table interactions.
     }

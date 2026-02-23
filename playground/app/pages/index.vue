@@ -1,6 +1,39 @@
 <template>
   <main class="min-h-screen bg-slate-100 text-slate-900">
-    <section class="mx-auto max-w-[1600px] px-6 py-10 md:px-10">
+    <section v-if="isPageLoading" class="mx-auto max-w-[1600px] px-6 py-10 md:px-10">
+      <div class="animate-pulse space-y-8">
+        <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div class="h-3 w-40 rounded bg-slate-200" />
+          <div class="mt-4 h-10 w-80 max-w-full rounded bg-slate-200" />
+          <div class="mt-3 h-4 w-full max-w-3xl rounded bg-slate-200" />
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="h-6 w-32 rounded bg-slate-200" />
+            <div class="h-4 w-16 rounded bg-slate-200" />
+          </div>
+
+          <div class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div
+              v-for="index in 4"
+              :key="index"
+              class="min-h-[210px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:min-h-[220px]">
+              <div class="h-6 w-2/3 rounded bg-slate-200" />
+              <div class="mt-3 h-4 w-full rounded bg-slate-200" />
+              <div class="mt-6 h-4 w-1/2 rounded bg-slate-200" />
+              <div class="mt-8 flex gap-2">
+                <div class="h-7 w-16 rounded bg-slate-200" />
+                <div class="h-7 w-14 rounded bg-slate-200" />
+                <div class="h-7 w-16 rounded bg-slate-200" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section v-else class="mx-auto max-w-[1600px] px-6 py-10 md:px-10">
       <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <p class="text-sm uppercase tracking-[0.24em] text-[#0A8276]">Requirements Manager</p>
         <h1 class="mt-4 text-3xl font-black text-slate-900 md:text-5xl">Projects Dashboard</h1>
@@ -35,11 +68,9 @@
               </span>
             </div>
 
-            <div class="mt-4 text-xs text-slate-500">
-              Updated {{ formatDateTime(project.updatedAt) }}
-            </div>
+            <div class="mt-4 text-xs text-slate-500">Updated {{ formatDateTime(project.updatedAt) }}</div>
 
-            <div class="mt-auto pt-5 flex flex-wrap gap-2">
+            <div class="mt-auto flex flex-wrap gap-2 pt-5">
               <button
                 type="button"
                 @click.stop="openProject(project.id)"
@@ -74,135 +105,57 @@
       </section>
     </section>
 
-    <Transition
-      enter-active-class="transition-opacity duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0">
-      <div v-if="isProjectModalOpen" class="fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-sm" />
-    </Transition>
+    <ProjectFormDialog
+      v-model="isProjectModalOpen"
+      :is-edit-mode="isEditMode"
+      :initial-name="projectFormInitial.name"
+      :initial-description="projectFormInitial.description"
+      @submit="submitProjectModal" />
 
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-[0.98]"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-2 scale-[0.98]">
-      <div v-if="isProjectModalOpen" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div ref="projectModalPanelEl" class="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="text-xl font-bold">{{ isEditMode ? "Edit Project" : "Create Project" }}</h3>
-              <p class="mt-1 text-sm text-slate-600">
-                {{ isEditMode ? "Update project metadata." : "Define the project metadata. Requirement sets start with one default sheet." }}
-              </p>
-            </div>
-            <button
-              type="button"
-              @click="closeProjectModal"
-              aria-label="Close modal"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-700 transition hover:border-[#0A8276]/40 hover:bg-[#0A8276]/5">
-              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-          </div>
-
-          <form class="mt-5 space-y-3" @submit.prevent="submitProjectModal">
-            <label class="block">
-              <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Name</span>
-              <input
-                v-model="projectForm.name"
-                required
-                type="text"
-                placeholder="Powertrain Controller"
-                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-[#0A8276] focus:ring-2 focus:ring-[#0A8276]/15" />
-            </label>
-
-            <label class="block">
-              <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Description</span>
-              <textarea
-                v-model="projectForm.description"
-                rows="4"
-                placeholder="Scope, stakeholders, and engineering context"
-                class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-[#0A8276] focus:ring-2 focus:ring-[#0A8276]/15" />
-            </label>
-
-            <button
-              type="submit"
-              class="w-full rounded-xl bg-[#0A8276] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#086d63]">
-              {{ isEditMode ? "Save Changes" : "Create Project" }}
-            </button>
-          </form>
-        </div>
-      </div>
-    </Transition>
-
-    <Transition
-      enter-active-class="transition-opacity duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0">
-      <div v-if="projectDeleteDialog" class="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm" @click="closeProjectDeleteDialog" />
-    </Transition>
-
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-[0.98]"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-2 scale-[0.98]">
-      <div v-if="projectDeleteDialog" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-          <h3 class="text-lg font-bold text-slate-900">Delete Project</h3>
-          <p class="mt-2 text-sm text-slate-600">
-            Are you sure you want to delete
-            <span class="font-semibold text-slate-800">"{{ projectDeleteDialog.name }}"</span>?
-            This removes all requirement sets in it.
-          </p>
-
-          <div class="mt-5 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              @click="closeProjectDeleteDialog"
-              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-              No
-            </button>
-            <button
-              type="button"
-              @click="confirmDeleteProject"
-              class="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-rose-500">
-              Yes, delete
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <ConfirmDialog
+      v-model="isProjectDeleteDialogOpen"
+      title="Delete Project"
+      :message="projectDeleteMessage"
+      confirm-label="Yes, delete"
+      cancel-label="No"
+      confirm-tone="danger"
+      @confirm="confirmDeleteProject" />
   </main>
 </template>
 
 <script setup lang="ts">
-  import { computed, reactive, ref } from "vue";
-  import { onClickOutside } from "@vueuse/core";
+  import { computed, onMounted, ref } from "vue";
   import { createProject, useRequirementsManagerStorage } from "~/composables/useRequirementsManager";
 
+  interface ProjectFormPayload {
+    name: string;
+    description: string;
+  }
+
   const storage = useRequirementsManagerStorage();
+  const isPageLoading = ref(true);
 
   const isProjectModalOpen = ref(false);
-  const projectForm = reactive({
+  const editProjectId = ref<string | null>(null);
+  const projectFormInitial = ref({
     name: "",
     description: ""
   });
-  const projectModalPanelEl = ref<HTMLElement | null>(null);
-  const editProjectId = ref<string | null>(null);
+
   const projectDeleteDialog = ref<{ id: string; name: string } | null>(null);
+
   const isEditMode = computed(() => editProjectId.value !== null);
+  const isProjectDeleteDialogOpen = computed({
+    get: () => projectDeleteDialog.value !== null,
+    set: (value: boolean) => {
+      if (!value) projectDeleteDialog.value = null;
+    }
+  });
+
+  const projectDeleteMessage = computed(() => {
+    if (!projectDeleteDialog.value) return "";
+    return `Are you sure you want to delete "${projectDeleteDialog.value.name}"? This removes all requirement sets in it.`;
+  });
 
   const createCardClass = computed(() => {
     if (!storage.value.projects.length) {
@@ -220,8 +173,10 @@
 
   const openCreateModal = () => {
     editProjectId.value = null;
-    projectForm.name = "";
-    projectForm.description = "";
+    projectFormInitial.value = {
+      name: "",
+      description: ""
+    };
     isProjectModalOpen.value = true;
   };
 
@@ -230,39 +185,35 @@
     if (!project) return;
 
     editProjectId.value = project.id;
-    projectForm.name = project.name;
-    projectForm.description = project.description;
+    projectFormInitial.value = {
+      name: project.name,
+      description: project.description
+    };
     isProjectModalOpen.value = true;
   };
 
   const closeProjectModal = () => {
     isProjectModalOpen.value = false;
     editProjectId.value = null;
-    projectForm.name = "";
-    projectForm.description = "";
+    projectFormInitial.value = {
+      name: "",
+      description: ""
+    };
   };
 
-  onClickOutside(projectModalPanelEl, () => {
-    if (!isProjectModalOpen.value) return;
-    closeProjectModal();
-  });
-
-  const submitProjectModal = () => {
-    const name = projectForm.name.trim();
-
-    if (!name) return;
-
+  const submitProjectModal = (payload: ProjectFormPayload) => {
     if (editProjectId.value) {
       const project = storage.value.projects.find((item) => item.id === editProjectId.value);
       if (!project) return;
-      project.name = name;
-      project.description = projectForm.description.trim();
+
+      project.name = payload.name;
+      project.description = payload.description;
       project.updatedAt = new Date().toISOString();
       closeProjectModal();
       return;
     }
 
-    const project = createProject(name, projectForm.description.trim());
+    const project = createProject(payload.name, payload.description);
     storage.value.projects.unshift(project);
     closeProjectModal();
   };
@@ -273,10 +224,6 @@
     projectDeleteDialog.value = { id: project.id, name: project.name };
   };
 
-  const closeProjectDeleteDialog = () => {
-    projectDeleteDialog.value = null;
-  };
-
   const confirmDeleteProject = () => {
     if (!projectDeleteDialog.value) return;
     const projectId = projectDeleteDialog.value.id;
@@ -285,6 +232,17 @@
     if (editProjectId.value === projectId) {
       closeProjectModal();
     }
-    closeProjectDeleteDialog();
+
+    projectDeleteDialog.value = null;
   };
+
+  onMounted(() => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        isPageLoading.value = false;
+      });
+      return;
+    }
+    isPageLoading.value = false;
+  });
 </script>

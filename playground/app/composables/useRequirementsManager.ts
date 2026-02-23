@@ -3,41 +3,143 @@ import { useLocalStorage } from "@vueuse/core";
 export type RequirementType = "Performance" | "Functional" | "Condition" | "DesignCharacteristic";
 export type Asil = "Qm" | "JamaA" | "JamaB" | "JamaC" | "JamaD";
 
+/**
+ * Requirement validation error model.
+ */
 export interface RequirementValidationError {
+  /**
+   * Field key associated with the validation error.
+   */
   field: string;
+
+  /**
+   * User-facing validation message.
+   */
   message: string;
 }
 
+/**
+ * Editable requirement row model.
+ */
 export interface RequirementRow {
+  /**
+   * Requirement key identifier.
+   */
   key: string;
+
+  /**
+   * Requirement name.
+   */
   name: string;
+
+  /**
+   * Requirement category.
+   */
   type: RequirementType;
+
+  /**
+   * Safety integrity level.
+   */
   asil: Asil;
+
+  /**
+   * Functional requirement description.
+   */
   description: string;
+
+  /**
+   * Parametric symbol.
+   */
   symbol: string;
+
+  /**
+   * Parametric unit.
+   */
   unit: string;
+
+  /**
+   * Minimum value.
+   */
   minimum: string;
+
+  /**
+   * Maximum value.
+   */
   maximum: string;
+
+  /**
+   * Typical value.
+   */
   typical: string;
 }
 
+/**
+ * Requirement set model within a project.
+ */
 export interface RequirementSheet {
+  /**
+   * Requirement-set identifier.
+   */
   id: string;
+
+  /**
+   * Requirement-set display name.
+   */
   name: string;
+
+  /**
+   * Requirements in this set.
+   */
   requirements: RequirementRow[];
 }
 
+/**
+ * Project model stored in local persistence.
+ */
 export interface ProjectRecord {
+  /**
+   * Project identifier.
+   */
   id: string;
+
+  /**
+   * Project name.
+   */
   name: string;
+
+  /**
+   * Project description.
+   */
   description: string;
+
+  /**
+   * ISO timestamp for creation.
+   */
   createdAt: string;
+
+  /**
+   * ISO timestamp for last update.
+   */
   updatedAt: string;
+
+  /**
+   * Requirement sets in this project.
+   */
   sheets: RequirementSheet[];
 }
 
+/**
+ * Root storage model for the requirements manager.
+ */
 interface RequirementsManagerStorage {
+  /**
+   * Storage schema version.
+   */
   version: number;
+
+  /**
+   * Persisted projects.
+   */
   projects: ProjectRecord[];
 }
 
@@ -48,20 +150,29 @@ const STORAGE_KEY = "requirements-manager-storage-v1";
 const NEXT_PROJECT_ID_KEY = "requirements-manager-next-project-id";
 const NEXT_SHEET_ID_KEY = "requirements-manager-next-sheet-id";
 
+/**
+ * Allocates the next incremental identifier for a counter key.
+ * @param storageKey Local storage counter key.
+ * @returns Incremental identifier as a string.
+ */
 function nextIncrementalId(storageKey: string) {
-  if (typeof window === "undefined") {
+  if (!import.meta.client) {
     return String(Date.now());
   }
 
-  const raw = window.localStorage.getItem(storageKey);
-  const current = Number(raw);
-  const safeCurrent = Number.isFinite(current) && current >= 1 ? current : 1;
+  const counter = useLocalStorage<number>(storageKey, 1);
+  const current = Number(counter.value);
+  const safeCurrent = Number.isFinite(current) && current >= 1 ? Math.floor(current) : 1;
   const next = safeCurrent + 1;
 
-  window.localStorage.setItem(storageKey, String(next));
+  counter.value = next;
   return String(safeCurrent);
 }
 
+/**
+ * Returns reactive requirements-manager storage.
+ * @returns Reactive local-storage state for projects.
+ */
 export function useRequirementsManagerStorage() {
   return useLocalStorage<RequirementsManagerStorage>(STORAGE_KEY, {
     version: 1,
@@ -69,6 +180,10 @@ export function useRequirementsManagerStorage() {
   });
 }
 
+/**
+ * Creates an empty requirement row.
+ * @returns Default requirement row.
+ */
 export function createEmptyRequirement(): RequirementRow {
   return {
     key: "",
@@ -84,6 +199,11 @@ export function createEmptyRequirement(): RequirementRow {
   };
 }
 
+/**
+ * Creates a default requirement set.
+ * @param name Display name for the requirement set.
+ * @returns Requirement-set record with one empty row.
+ */
 export function createDefaultSheet(name = "Requirement Set 1"): RequirementSheet {
   return {
     id: nextIncrementalId(NEXT_SHEET_ID_KEY),
@@ -92,6 +212,12 @@ export function createDefaultSheet(name = "Requirement Set 1"): RequirementSheet
   };
 }
 
+/**
+ * Creates a new project record with one default set.
+ * @param name Project name.
+ * @param description Project description.
+ * @returns Initialized project record.
+ */
 export function createProject(name: string, description: string): ProjectRecord {
   const now = new Date().toISOString();
 
@@ -105,6 +231,11 @@ export function createProject(name: string, description: string): ProjectRecord 
   };
 }
 
+/**
+ * Validates a requirement row against domain rules.
+ * @param row Requirement row to validate.
+ * @returns Validation errors for the row.
+ */
 export function validateRequirement(row: RequirementRow): RequirementValidationError[] {
   const errors: RequirementValidationError[] = [];
 
