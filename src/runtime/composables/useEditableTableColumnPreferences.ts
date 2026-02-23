@@ -1,5 +1,4 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
-import { useLocalStorage } from "@vueuse/core";
 import type { ColumnType, EditableTableColumn } from "#editable-table/types/column";
 
 export type ColumnRenderEntry<TRow extends Record<string, any>> =
@@ -14,17 +13,6 @@ type StoredTablePreferences = {
   columnWidths?: Record<string, number | string>;
   sort?: { columnKey: string; direction: "asc" | "desc" };
 };
-
-const preferencesStoreByKey = new Map<string, { value: StoredTablePreferences | null }>();
-
-function getPreferencesStore(key: string) {
-  const existing = preferencesStoreByKey.get(key);
-  if (existing) return existing;
-
-  const created = useLocalStorage<StoredTablePreferences | null>(key, null);
-  preferencesStoreByKey.set(key, created);
-  return created;
-}
 
 interface ColumnPreferencesOptions<TRow extends Record<string, any>> {
   columns: Ref<EditableTableColumn<TRow>[]>;
@@ -177,7 +165,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     const key = resolveStorageKey();
     if (!key) return;
     try {
-      getPreferencesStore(key).value = null;
+      window.localStorage.removeItem(key);
     } catch {
       // Ignore storage errors.
     }
@@ -189,7 +177,9 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     if (!key) return null;
 
     try {
-      const parsed = getPreferencesStore(key).value;
+      const rawValue = window.localStorage.getItem(key);
+      if (!rawValue) return null;
+      const parsed = JSON.parse(rawValue) as StoredTablePreferences;
       if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.columnOrder)) return null;
       return parsed;
     } catch {
@@ -203,7 +193,7 @@ export function useEditableTableColumnPreferences<TRow extends Record<string, an
     if (!key) return;
 
     try {
-      getPreferencesStore(key).value = preferences;
+      window.localStorage.setItem(key, JSON.stringify(preferences));
     } catch {
       // Ignore storage errors to avoid blocking table interactions.
     }
