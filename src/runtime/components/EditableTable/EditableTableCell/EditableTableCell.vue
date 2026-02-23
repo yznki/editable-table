@@ -554,7 +554,7 @@
         :id="tooltipId"
         ref="tooltipElement"
         role="tooltip"
-        class="rounded-lg border border-error-100/30 bg-white px-3 py-2 text-[12px] leading-5 text-error-100 shadow-xl ring-1 ring-black/5 break-words whitespace-normal"
+        class="editable-table-tooltip rounded-lg border border-error-100/30 bg-white px-3 py-2 text-[12px] leading-5 text-error-100 shadow-xl ring-1 ring-black/5 break-words whitespace-normal"
         :style="tooltipPosition.style">
         {{ validationMessage }}
       </div>

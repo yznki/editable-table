@@ -137,7 +137,7 @@
 
 <template>
   <div ref="tabsContainerElement" class="relative border-b border-slate-200 bg-slate-100 px-4 pt-3">
-    <div ref="tabsStripElement" class="flex items-end gap-1 overflow-x-auto">
+    <div ref="tabsStripElement" class="requirement-set-tabs-strip flex items-end gap-1 overflow-x-auto overflow-y-hidden pb-1">
       <div
         v-for="(sheet, index) in sheets"
         :key="sheet.id"
@@ -197,3 +197,14 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+  .requirement-set-tabs-strip {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .requirement-set-tabs-strip::-webkit-scrollbar {
+    display: none;
+  }
+</style>

@@ -1114,7 +1114,7 @@
     </div>
 
     <div v-if="isDragging && dragPreviewStyle && draggingColumn" class="pointer-events-none absolute z-20" :style="dragPreviewStyle">
-      <div class="rounded-md border border-accent-200 bg-white px-3 py-2 shadow-lg ring-2 ring-accent-100">
+      <div class="editable-table-drag-preview rounded-md border bg-white px-3 py-2 shadow-lg">
         {{ draggingColumn.title }}
       </div>
     </div>
@@ -1123,18 +1123,18 @@
       v-if="isRowDragging && rowDragPreviewStyle && draggingRowIndex !== null && draggingRow"
       class="pointer-events-none absolute z-20"
       :style="rowDragPreviewStyle">
-      <div class="grid overflow-hidden rounded-md border border-accent-200 bg-white shadow-lg ring-2 ring-accent-100" :style="gridStyle">
-        <div class="px-2 py-2 text-right text-xs font-semibold text-accent-200 bg-accent-50">
+      <div class="editable-table-row-drag-preview grid overflow-hidden rounded-md border bg-white shadow-lg" :style="gridStyle">
+        <div class="editable-table-row-drag-index px-2 py-2 text-right text-xs font-semibold">
           {{ draggingRowIndex + 1 }}
         </div>
         <template
           v-for="entry in columnRenderEntries"
           :key="entry.type === 'column' ? `drag-${String(entry.column.rowKey)}` : `drag-${entry.id}`">
-          <div v-if="entry.type === 'column'" class="px-3 py-2 text-sm text-gray-800 border-l border-accent-100 truncate">
+          <div v-if="entry.type === 'column'" class="editable-table-row-drag-cell px-3 py-2 text-sm text-gray-800 border-l truncate">
             {{ formatRowPreviewValue(draggingRow[entry.column.rowKey as keyof TRow], entry.column.type) }}
           </div>
-          <div v-else class="flex items-center justify-center border-l border-accent-100">
-            <span class="h-3 w-px rounded-full bg-accent-100" />
+          <div v-else class="editable-table-row-drag-cell flex items-center justify-center border-l">
+            <span class="editable-table-row-drag-separator h-3 w-px rounded-full" />
           </div>
         </template>
       </div>
