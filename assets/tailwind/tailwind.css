@@ -29,6 +29,9 @@
     --color-accent-50: 108, 155, 209;
     --color-accent-100: 65, 111, 164;
     --color-accent-200: 50, 75, 115;
+    --color-error-50: 255, 237, 242;
+    --color-error-100: 205, 0, 47;
+    --color-error-200: 166, 0, 38;
 
     --background-color-data-grid-header: var(--color-accent-100);
     --background-color-data-grid-header-separator: var(--color-accent-200);

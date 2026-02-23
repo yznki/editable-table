@@ -1,4 +1,5 @@
 import { defineNuxtModule, createResolver, addImportsDir, addComponentsDir, installModule } from "@nuxt/kit";
+import { createRequire } from "node:module";
 
 export interface ModuleOptions {
   /**
@@ -23,6 +24,8 @@ export default defineNuxtModule<ModuleOptions>({
 
   async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
+    const require = createRequire(import.meta.url);
+    const tailwindPreset = require(resolver.resolve("../assets/tailwind/tailwind.preset.cjs"));
 
     /**
      * Runtime alias (for explicit imports & types)
@@ -63,11 +66,40 @@ export default defineNuxtModule<ModuleOptions>({
     });
 
     const shouldInstallTailwind = !options.disableTailwind && !hasCvcModule;
+    const tailwindCssPath = resolver.resolve("../assets/tailwind/tailwind.css");
+    const tailwindContentGlobs = [
+      resolver.resolve("./runtime/**/*.{vue,js,ts,mjs}"),
+      resolver.resolve("../dist/runtime/**/*.{vue,js,ts,mjs}")
+    ];
 
     if (shouldInstallTailwind) {
+      nuxt.options.css ||= [];
+
+      if (!nuxt.options.css.includes(tailwindCssPath)) {
+        nuxt.options.css.unshift(tailwindCssPath);
+      }
+
+      const tailwindOptions = ((nuxt.options as Record<string, any>).tailwindcss ??= {});
+      const tailwindConfig = (tailwindOptions.config ??= {});
+
+      const mergedContent = Array.isArray(tailwindConfig.content) ? [...tailwindConfig.content] : [];
+      tailwindContentGlobs.forEach((contentGlob) => {
+        if (!mergedContent.includes(contentGlob)) {
+          mergedContent.push(contentGlob);
+        }
+      });
+      tailwindConfig.content = mergedContent;
+
+      const mergedPresets = Array.isArray(tailwindConfig.presets) ? [...tailwindConfig.presets] : [];
+      if (!mergedPresets.includes(tailwindPreset)) {
+        mergedPresets.push(tailwindPreset);
+      }
+      tailwindConfig.presets = mergedPresets;
+
       await installModule("@nuxtjs/tailwindcss", {
         configPath: resolver.resolve("../tailwind.config.ts"),
-        cssPath: [resolver.resolve("../assets/tailwind/tailwind.css"), { injectPosition: "first" }],
+        cssPath: [tailwindCssPath, { injectPosition: "first" }],
+        config: tailwindConfig,
         exposeConfig: true
       });
     }
