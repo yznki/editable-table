@@ -110,6 +110,8 @@
 
   const expandedEditorTitle = computed(() => `Edit ${String(props.columnKey)}`);
 
+  const isInlineCellEditorEditable = computed(() => isActive.value && isEditable.value && !shouldUseExpandedEditor.value);
+
   const expandedEditorValue = computed({
     get: () => {
       const currentValue = value.value;
@@ -275,7 +277,7 @@
     beginEditWithoutValue();
   }
 
-  function openExpandedEditor(initialValue?: string) {
+  function openExpandedEditor(options?: { nextValue?: string; appendText?: string }) {
     if (!isEditable.value || !shouldUseExpandedEditor.value) return;
 
     if (!hasOriginalValue.value) {
@@ -283,8 +285,13 @@
       hasOriginalValue.value = true;
     }
 
-    if (initialValue !== undefined) {
-      value.value = initialValue as TRow[TKey];
+    if (options?.nextValue !== undefined) {
+      value.value = options.nextValue as TRow[TKey];
+    }
+
+    if (options?.appendText !== undefined) {
+      const currentValue = expandedEditorValue.value;
+      value.value = `${currentValue}${options.appendText}` as TRow[TKey];
     }
 
     isExpandedEditorOpen.value = true;
@@ -458,7 +465,7 @@
       selectOnFocus.value = false;
 
       if (shouldUseExpandedEditor.value) {
-        openExpandedEditor("");
+        openExpandedEditor({ nextValue: "" });
         return;
       }
 
@@ -486,7 +493,7 @@
     }
 
     if (shouldUseExpandedEditor.value) {
-      openExpandedEditor(event.key);
+      openExpandedEditor({ appendText: event.key });
       return;
     }
 
@@ -624,7 +631,7 @@
         :select-on-focus="selectOnFocus"
         @blur="onBlur"
         class="w-full"
-        :is-editable="isActive && isEditable" />
+        :is-editable="isInlineCellEditorEditable" />
     </div>
 
     <EditableTableExpandedEditorDialog
