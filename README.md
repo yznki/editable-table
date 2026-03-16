@@ -89,6 +89,7 @@ interface EditableTableColumn<TRow> {
   rowKey: keyof TRow | string; // field on the row object
   title: string; // header label
   type?: ColumnType; // defaults to "text"
+  useExpandedEditor?: boolean; // opens a large textarea dialog for long-form text editing
   width?: number | string; // reserved for future use
 }
 ```
@@ -100,6 +101,12 @@ Type handling:
 - `date`: ISO `YYYY-MM-DD` strings in the UI; accepts `Date` or parsable strings.
 - `select`: values typed in any cell become reusable options; display mode shows colored pills; dropdown is scrollable, filterable, arrow-navigable, and closes on Enter selection.
 - `custom`: rendered as text input by default (slotting coming later).
+
+Long-form text editing:
+
+- Set `useExpandedEditor: true` on text-like columns (for example description columns) to open a larger modal editor.
+- Trigger: double click the cell, press `Enter` on a focused cell, or start typing.
+- `Esc` cancels and restores the original value; `Save` commits the value and history behaves the same as inline edits.
 
 ### Keyboard & mouse reference
 

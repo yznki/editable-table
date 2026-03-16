@@ -18,6 +18,7 @@ export interface EditableTableColumn<TRow extends Record<string, any> = Record<s
   type?: ColumnType;
 
   editable?: boolean | ((row: TRow) => boolean);
+  useExpandedEditor?: boolean;
   required?: boolean;
   options?: string[];
   allowCustomOptions?: boolean;

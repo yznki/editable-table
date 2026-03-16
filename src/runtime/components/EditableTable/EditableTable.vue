@@ -1228,6 +1228,7 @@
             :column-key="entry.column.rowKey"
             :column-type="entry.column.type"
             :column-editable="isCellEditable(entry.column, row)"
+            :column-use-expanded-editor="entry.column.useExpandedEditor"
             :column-required="entry.column.required"
             :column-validation="entry.column.validate"
             :column-allow-custom-options="entry.column.allowCustomOptions"

@@ -102,6 +102,7 @@ export function useRequirementTableColumns() {
       rowKey: "description",
       title: "Description",
       type: "text",
+      useExpandedEditor: true,
       editable: isDescriptionEditable,
       validate: (_, row) => validateRequirement(row).find((error) => error.field === "description")?.message ?? null
     },

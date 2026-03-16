@@ -32,7 +32,7 @@
     variants: {
       editable: {
         true: "select-text",
-        false: "select-none text-gray-800"
+        false: "block overflow-hidden text-ellipsis whitespace-nowrap select-none text-gray-800"
       }
     },
     defaultVariants: {

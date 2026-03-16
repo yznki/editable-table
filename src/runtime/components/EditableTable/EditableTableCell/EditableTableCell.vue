@@ -3,6 +3,7 @@
   import { useMagicKeys } from "@vueuse/core";
 
   import EditableTableCellEditor from "#editable-table/components/EditableTable/EditableTableCellEditor/EditableTableCellEditor.vue";
+  import EditableTableExpandedEditorDialog from "#editable-table/components/EditableTable/EditableTableExpandedEditorDialog/EditableTableExpandedEditorDialog.vue";
   import { useEditableTableEditing } from "#editable-table/composables/useEditableTableEditing";
   import { useEditableTableNavigation } from "#editable-table/composables/useEditableTableNavigation";
   import { useSmartTooltip } from "#editable-table/composables/useSmartTooltip";
@@ -15,6 +16,7 @@
     columnKey: TKey;
     columnType?: ColumnType;
     columnEditable?: boolean;
+    columnUseExpandedEditor?: boolean;
     selectOptions?: string[];
     columnRequired?: boolean;
     columnValidation?:
@@ -72,6 +74,7 @@
   const originalValue = ref<TRow[TKey] | null>(null);
   const hasOriginalValue = ref(false);
   const selectOnFocus = ref(true);
+  const isExpandedEditorOpen = ref(false);
   const navigationKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
   const isEditable = computed(() => props.columnEditable !== false);
@@ -97,6 +100,28 @@
       props.columnIndex >= startColumnIndex &&
       props.columnIndex <= endColumnIndex
     );
+  });
+
+  const shouldUseExpandedEditor = computed(() => {
+    if (!props.columnUseExpandedEditor) return false;
+    const resolvedType = props.columnType ?? "text";
+    return resolvedType === "text" || resolvedType === "custom";
+  });
+
+  const expandedEditorTitle = computed(() => `Edit ${String(props.columnKey)}`);
+
+  const expandedEditorValue = computed({
+    get: () => {
+      const currentValue = value.value;
+      if (currentValue === null || currentValue === undefined) {
+        return "";
+      }
+
+      return typeof currentValue === "string" ? currentValue : String(currentValue);
+    },
+    set: (nextValue: string) => {
+      value.value = nextValue as TRow[TKey];
+    }
   });
 
   function isDateValue(input: unknown): input is Date {
@@ -241,11 +266,40 @@
 
   function onDblClick() {
     if (!isEditable.value) return;
-    selectOnFocus.value = true;
+
+    if (shouldUseExpandedEditor.value) {
+      openExpandedEditor();
+      return;
+    }
+
+    beginEditWithoutValue();
+  }
+
+  function openExpandedEditor(initialValue?: string) {
+    if (!isEditable.value || !shouldUseExpandedEditor.value) return;
+
+    if (!hasOriginalValue.value) {
+      originalValue.value = value.value ?? null;
+      hasOriginalValue.value = true;
+    }
+
+    if (initialValue !== undefined) {
+      value.value = initialValue as TRow[TKey];
+    }
+
+    isExpandedEditorOpen.value = true;
+    selectOnFocus.value = false;
+
     startEditing({
       rowId: props.rowId,
       columnKey: String(props.columnKey)
     });
+  }
+
+  function cancelExpandedEditor() {
+    if (!isExpandedEditorOpen.value) return;
+    isExpandedEditorOpen.value = false;
+    stopEditing();
   }
 
   function focusCell() {
@@ -357,6 +411,12 @@
 
   function beginEditWithoutValue() {
     if (!isEditable.value) return;
+
+    if (shouldUseExpandedEditor.value) {
+      openExpandedEditor();
+      return;
+    }
+
     selectOnFocus.value = true;
     startEditing({
       rowId: props.rowId,
@@ -396,6 +456,12 @@
     if (event.key === "Backspace" || event.key === "Delete") {
       event.preventDefault();
       selectOnFocus.value = false;
+
+      if (shouldUseExpandedEditor.value) {
+        openExpandedEditor("");
+        return;
+      }
+
       beginEditWithValue(defaultValueForColumn() as TRow[TKey]);
       return;
     }
@@ -419,18 +485,24 @@
       return;
     }
 
+    if (shouldUseExpandedEditor.value) {
+      openExpandedEditor(event.key);
+      return;
+    }
+
     beginEditWithValue(event.key as TRow[TKey]);
   }
 
   watch(keys.enter, (pressed) => {
     if (!pressed || !isFocused.value) return;
 
+    if (isExpandedEditorOpen.value) {
+      return;
+    }
+
     if (!isActive.value) {
       if (!isEditable.value) return;
-      startEditing({
-        rowId: props.rowId,
-        columnKey: String(props.columnKey)
-      });
+      beginEditWithoutValue();
       return;
     }
 
@@ -453,6 +525,11 @@
 
   watch(keys.escape, (pressed) => {
     if (!pressed || !isActive.value) {
+      return;
+    }
+
+    if (isExpandedEditorOpen.value) {
+      cancelExpandedEditor();
       return;
     }
 
@@ -520,6 +597,7 @@
   });
 
   function onBlur() {
+    if (isExpandedEditorOpen.value) return;
     stopEditing();
   }
 </script>
@@ -548,6 +626,13 @@
         class="w-full"
         :is-editable="isActive && isEditable" />
     </div>
+
+    <EditableTableExpandedEditorDialog
+      v-model:is-visible="isExpandedEditorOpen"
+      v-model="expandedEditorValue"
+      :title="expandedEditorTitle"
+      @cancel="cancelExpandedEditor" />
+
     <teleport to="body">
       <div
         v-if="validationMessage && isTooltipVisible"
